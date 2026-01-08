@@ -1,103 +1,109 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { BackgroundLayer } from "@/components/background-layer"
+import { TimerDisplay } from "@/components/timer-display"
+import { ControlBar } from "@/components/control-bar"
+import { TodoWidget } from "@/components/todo-widget"
+import { SettingsMenu } from "@/components/settings-menu"
+import { CookiePopup } from "@/components/cookie-popup"
+import { useAppStore } from "@/lib/store"
+import { useWorkerTimer } from "@/hooks/use-worker-timer"
+import { useEffect, useRef, useCallback } from "react"
+import { alarmSounds } from "@/lib/data"
+
+export default function Page() {
+  const isPlaying = useAppStore((state) => state.isPlaying)
+  const setIsPlaying = useAppStore((state) => state.setIsPlaying)
+  const timeLeft = useAppStore((state) => state.timeLeft)
+  const setTimeLeft = useAppStore((state) => state.setTimeLeft)
+  const timerMode = useAppStore((state) => state.timerMode)
+  const setTimerMode = useAppStore((state) => state.setTimerMode)
+  const preferences = useAppStore((state) => state.preferences)
+  const showTodos = useAppStore((state) => state.showTodos)
+
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const notificationShownRef = useRef(false)
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission()
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && e.target === document.body) {
+        e.preventDefault()
+        setIsPlaying(!isPlaying)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isPlaying, setIsPlaying])
+
+  // Handle timer tick
+  const handleTick = useCallback(() => {
+    setTimeLeft(Math.max(0, timeLeft - 1))
+  }, [timeLeft, setTimeLeft])
+
+  // Use Web Worker for timer
+  useWorkerTimer({
+    isPlaying,
+    onTick: handleTick,
+  })
+
+  // Handle timer completion
+  useEffect(() => {
+    if (timeLeft === 0 && !notificationShownRef.current) {
+      notificationShownRef.current = true
+      setIsPlaying(false)
+
+      // Play alarm sound
+      if (audioRef.current) {
+        audioRef.current.play().catch(console.error)
+      }
+
+      // Show notification
+      if ("Notification" in window && Notification.permission === "granted") {
+        const message = timerMode === "focus" ? "Time for a break! Great work!" : "Break is over! Ready to focus?"
+
+        new Notification("Lofi Study Station", {
+          body: message,
+          icon: "/icon.svg",
+          badge: "/icon.svg",
+        })
+      }
+
+      // Switch mode and reset
+      setTimeout(() => {
+        const newMode = timerMode === "focus" ? "break" : "focus"
+        setTimerMode(newMode)
+        const duration = newMode === "focus" ? preferences.focusDuration : preferences.breakDuration
+        setTimeLeft(duration * 60)
+        notificationShownRef.current = false
+      }, 1000)
+    }
+  }, [timeLeft, timerMode, setIsPlaying, setTimerMode, setTimeLeft, preferences])
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <BackgroundLayer />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <audio ref={audioRef} src={alarmSounds[0].url} preload="auto" />
+
+      <div className="relative z-10 w-full px-4">
+        <div className="flex items-center justify-center">
+          <TimerDisplay />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+      </div>
+
+      <TodoWidget />
+
+      <ControlBar />
+      <SettingsMenu />
+      <CookiePopup />
+    </main>
+  )
 }
