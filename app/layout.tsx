@@ -8,8 +8,7 @@ const geist = Geist({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "LoFi Web",
-  description: "A minimalist study tool with lofi music, video backgrounds, and Pomodoro timer",
-  generator: "v0.app",
+  description: "A Chill and relaxing website to help study.",
   icons: {
     icon: [
       {
