@@ -5,7 +5,7 @@ import { RotateCcw, CheckSquare, Volume2, Settings, Play, Pause, SkipForward, Sk
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getUIColors } from "@/lib/utils"
-import { backgroundScenes, musicTracks } from "@/lib/data"
+import { musicTracks, SCENE_COLORS } from "@/lib/data"
 import { useState } from "react"
 import * as React from "react"
 
@@ -133,6 +133,7 @@ const THEME_COLORS = {
   black: "#000000",
 }
 
+
 export function ControlBar() {
   const resetTimer = useAppStore((state) => state.resetTimer)
   const toggleTodos = useAppStore((state) => state.toggleTodos)
@@ -166,8 +167,7 @@ export function ControlBar() {
 
   const color = THEME_COLORS[themeColor]
 
-  const currentScene = backgroundScenes.find((s) => s.id === currentSceneId)
-  const bgHex = secondaryColor ? THEME_COLORS[secondaryColor] : currentScene?.color || "#000000"
+  const bgHex = secondaryColor ? THEME_COLORS[secondaryColor] : (currentSceneId && SCENE_COLORS[currentSceneId]) || "#000000"
   const uiColors = getUIColors(bgHex, uiMode)
 
   const currentTrack = musicTracks.find((t) => t.id === currentTrackId)

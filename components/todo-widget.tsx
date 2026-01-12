@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { getUIColors } from "@/lib/utils"
-import { backgroundScenes } from "@/lib/data"
+import { SCENE_COLORS } from "@/lib/data"
 import confetti from "canvas-confetti"
 
 const THEME_COLORS = {
@@ -38,8 +38,7 @@ export function TodoWidget() {
 
   const color = THEME_COLORS[themeColor]
 
-  const currentScene = backgroundScenes.find((s) => s.id === currentSceneId)
-  const bgHex = secondaryColor ? THEME_COLORS[secondaryColor] : currentScene?.color || "#000000"
+  const bgHex = secondaryColor ? THEME_COLORS[secondaryColor] : (currentSceneId && SCENE_COLORS[currentSceneId]) || "#000000"
   const uiColors = getUIColors(bgHex, uiMode)
 
   useEffect(() => {

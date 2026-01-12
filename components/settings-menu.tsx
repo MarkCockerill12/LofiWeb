@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { backgroundScenes, musicTracks } from "@/lib/data"
+import { backgroundScenes, musicTracks, SCENE_COLORS } from "@/lib/data"
 import type { ThemeColor, ThemeVariant } from "@/lib/store"
 import { useState, useRef, useEffect } from "react"
 import { getUIColors } from "@/lib/utils"
@@ -50,18 +50,6 @@ const THEME_COLORS: { color: ThemeColor; hex: string; label: string }[] = [
   { color: "black", hex: "#000000", label: "Black" },
 ]
 
-const SCENE_COLORS: Record<string, string> = {
-  "scene-0": "#ec4899", // Sakura -> Pink
-  "scene-1": "#a855f7", // Retrowave -> Purple
-  "scene-2": "#06b6d4", // Night City -> Cyan
-  "scene-3": "#06b6d4", // Moonlit Lake -> Cyan
-  "scene-4": "#a855f7", // Moonlight Flower -> Purple
-  "scene-5": "#10b981", // Minecraft -> Green
-  "scene-6": "#f97316", // Magma -> Orange
-  "scene-7": "#a855f7", // Galactic -> Purple
-  "scene-8": "#000000", // Deltarune -> Black
-  "scene-9": "#ec4899", // Bongo Cat -> Pink
-}
 
 const UI_COLORS_EXTENDED = {
     // Add any specific UI overrides if needed

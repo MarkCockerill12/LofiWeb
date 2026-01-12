@@ -4,7 +4,7 @@ import { useAppStore } from "@/lib/store"
 import { useEffect, useRef } from "react"
 import anime from "animejs"
 import { getUIColors } from "@/lib/utils"
-import { backgroundScenes } from "@/lib/data"
+import { SCENE_COLORS } from "@/lib/data"
 
 const THEME_COLORS = {
   cyan: "#06b6d4",
@@ -15,6 +15,7 @@ const THEME_COLORS = {
   white: "#ffffff",
   black: "#000000",
 }
+
 
 export function TimerDisplay() {
   const timeLeft = useAppStore((state) => state.timeLeft)
@@ -31,8 +32,7 @@ export function TimerDisplay() {
   const primaryColor = THEME_COLORS[themeColor]
   const bgColor = secondaryColor ? THEME_COLORS[secondaryColor] : THEME_COLORS.purple
 
-  const currentScene = backgroundScenes.find((s) => s.id === currentSceneId)
-  const bgHex = secondaryColor ? THEME_COLORS[secondaryColor] : currentScene?.color || "#000000"
+  const bgHex = secondaryColor ? THEME_COLORS[secondaryColor] : (currentSceneId && SCENE_COLORS[currentSceneId]) || "#000000"
   const uiColors = getUIColors(bgHex, uiMode)
 
   const totalSeconds = timerMode === "focus" ? preferences.focusDuration * 60 : preferences.breakDuration * 60
