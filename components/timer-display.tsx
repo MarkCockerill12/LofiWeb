@@ -23,6 +23,7 @@ export function TimerDisplay() {
   const isPlaying = useAppStore((state) => state.isPlaying)
   const setIsPlaying = useAppStore((state) => state.setIsPlaying)
   const currentSceneId = useAppStore((state) => state.currentSceneId)
+  const setTimerInteraction = useAppStore((state) => state.setTimerInteraction)
   const circleRef = useRef<SVGCircleElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -55,6 +56,7 @@ export function TimerDisplay() {
     if (!containerRef.current) return
 
     const handleMouseEnter = () => {
+      setTimerInteraction("hover")
       anime({
         targets: containerRef.current,
         scale: 1.05,
@@ -64,6 +66,7 @@ export function TimerDisplay() {
     }
 
     const handleMouseLeave = () => {
+      setTimerInteraction("none")
       anime({
         targets: containerRef.current,
         scale: 1,
@@ -73,6 +76,7 @@ export function TimerDisplay() {
     }
 
     const handleMouseDown = () => {
+      setTimerInteraction("press")
       anime({
         targets: containerRef.current,
         scale: 0.95,
@@ -82,6 +86,7 @@ export function TimerDisplay() {
     }
 
     const handleMouseUp = () => {
+      setTimerInteraction("hover")
       anime({
         targets: containerRef.current,
         scale: 1.05,
@@ -95,14 +100,19 @@ export function TimerDisplay() {
     element.addEventListener("mouseleave", handleMouseLeave)
     element.addEventListener("mousedown", handleMouseDown)
     element.addEventListener("mouseup", handleMouseUp)
+    // Add touch events for mobile sync
+    element.addEventListener("touchstart", handleMouseDown) 
+    element.addEventListener("touchend", handleMouseUp)
 
     return () => {
       element.removeEventListener("mouseenter", handleMouseEnter)
       element.removeEventListener("mouseleave", handleMouseLeave)
       element.removeEventListener("mousedown", handleMouseDown)
       element.removeEventListener("mouseup", handleMouseUp)
+      element.removeEventListener("touchstart", handleMouseDown)
+      element.removeEventListener("touchend", handleMouseUp)
     }
-  }, [])
+  }, [setTimerInteraction])
 
   const minutes = Math.floor(timeLeft / 60)
   const seconds = timeLeft % 60
@@ -135,7 +145,22 @@ export function TimerDisplay() {
           </div>
         )}
 
-        <svg className="w-64 h-64 md:w-80 md:h-80 -rotate-90 relative">
+        {/* Neon Background Backing */}
+        {themeVariant === 'neon' && (
+             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div 
+                    className="rounded-full blur-md"
+                    style={{
+                        width: "220px",
+                        height: "220px",
+                        backgroundColor: primaryColor,
+                        opacity: uiMode === 'dark' ? 0.35 : 0.25,
+                    }}
+                />
+             </div>
+        )}
+
+        <svg className="w-64 h-64 md:w-80 md:h-80 -rotate-90 relative overflow-visible">
           <circle cx="50%" cy="50%" r="120" fill="none" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="8" />
           <circle
             ref={circleRef}
@@ -163,7 +188,7 @@ export function TimerDisplay() {
           </div>
           <div
             className="text-sm md:text-base mt-2 uppercase tracking-wider"
-            style={{ color: textColor, opacity: 0.6 }}
+            style={{ color: textColor, opacity: 1 }}
           >
             {timerMode === "focus" ? "Focus Time" : "Break Time"}
           </div>

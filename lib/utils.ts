@@ -24,6 +24,7 @@ export function getUIColors(backgroundHex: string | undefined, uiMode: "auto" | 
   if (uiMode === "light") {
     return {
       bg: "rgba(255, 255, 255, 0.85)",
+      bgBase: "#ffffff",
       text: "#000000",
       textSecondary: "rgba(0, 0, 0, 0.6)",
       border: "rgba(0, 0, 0, 0.1)",
@@ -33,6 +34,7 @@ export function getUIColors(backgroundHex: string | undefined, uiMode: "auto" | 
   if (uiMode === "dark") {
     return {
       bg: "rgba(0, 0, 0, 0.85)",
+      bgBase: "#000000",
       text: "#ffffff",
       textSecondary: "rgba(255, 255, 255, 0.6)",
       border: "rgba(255, 255, 255, 0.1)",
@@ -43,6 +45,7 @@ export function getUIColors(backgroundHex: string | undefined, uiMode: "auto" | 
   const isLight = isLightColor(backgroundHex)
   return {
     bg: isLight ? "rgba(255, 255, 255, 0.85)" : "rgba(0, 0, 0, 0.85)",
+    bgBase: isLight ? "#ffffff" : "#000000",
     text: isLight ? "#000000" : "#ffffff",
     textSecondary: isLight ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.6)",
     border: isLight ? "rgba(0, 0, 0, 0.1)" : "rgba(255, 255, 255, 0.1)",

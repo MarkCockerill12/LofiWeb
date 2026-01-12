@@ -40,6 +40,31 @@ interface AppState {
   currentSceneId: string
   musicVolume: number
   musicPlaying: boolean // Add music playing state
+  musicDuration: number // Add duration
+  musicCurrentTime: number // Add current time
+  musicSeekRequest: number | null // Add seek request
+  
+  // Categorization & Favorites
+  favoriteScenes: string[]
+  favoriteTracks: string[]
+  activePlaylist: string // "all", "favorites", or specific category
+  
+  // Explicit Queue Management
+  queue: string[] // List of track IDs
+  
+  isShuffled: boolean
+  
+  // Visualizer State
+  showVisualizer: boolean
+  visualizerStyle: "bars" | "wave" | "circle"
+  visualizerSensitivity: number
+  
+  // Timer Interaction State for Visualizer Sync
+  timerInteraction: "none" | "hover" | "press"
+
+  loopMode: "all" | "one" | "none" 
+  
+  playerCommand: { type: 'prev' | 'next' | 'restart', timestamp: number } | null
 
   ambientSounds: AmbientSounds
 
@@ -54,6 +79,7 @@ interface AppState {
   preferences: Preferences
 
   // Actions
+  setTimerInteraction: (state: "none" | "hover" | "press") => void
   setIsPlaying: (playing: boolean) => void
   setTimerMode: (mode: TimerMode) => void
   setTimeLeft: (time: number) => void
@@ -61,6 +87,23 @@ interface AppState {
   setCurrentScene: (id: string) => void
   setMusicVolume: (volume: number) => void
   setMusicPlaying: (playing: boolean) => void // Add action
+  setMusicProgress: (time: number, duration: number) => void // Add action
+  setMusicSeek: (time: number | null) => void // Add action
+  
+  toggleFavoriteScene: (id: string) => void
+  toggleFavoriteTrack: (id: string) => void
+  setActivePlaylist: (playlist: string) => void
+  
+  setQueue: (trackIds: string[]) => void
+  
+  toggleShuffle: () => void
+  
+  toggleVisualizer: () => void
+  setVisualizerStyle: (style: "bars" | "wave" | "circle") => void
+  setVisualizerSensitivity: (sensitivity: number) => void
+  
+  setLoopMode: (mode: "all" | "one" | "none") => void
+  sendPlayerCommand: (command: { type: 'prev' | 'next' | 'restart', timestamp: number } | null) => void
   toggleTodos: () => void
   toggleSettings: () => void
   addTodo: (text: string) => void
@@ -82,6 +125,24 @@ export const useAppStore = create<AppState>()(
       currentSceneId: "1",
       musicVolume: 0.5,
       musicPlaying: false, // Add initial state
+      musicDuration: 0,
+      musicCurrentTime: 0,
+      musicSeekRequest: null,
+      
+      favoriteScenes: [],
+      favoriteTracks: [],
+      activePlaylist: "all",
+      queue: [],
+      
+      isShuffled: false,
+      
+      showVisualizer: false,
+      visualizerStyle: "bars",
+      visualizerSensitivity: 1, // Multiplier for visualizer height/radius
+      timerInteraction: "none",
+      
+      loopMode: "all",
+      playerCommand: null,
       showTodos: false,
       showSettings: false,
       todos: [],
@@ -103,13 +164,41 @@ export const useAppStore = create<AppState>()(
       },
 
       // Actions
+      setTimerInteraction: (interaction) => set({ timerInteraction: interaction }),
       setIsPlaying: (playing) => set({ isPlaying: playing }),
       setTimerMode: (mode) => set({ timerMode: mode }),
       setTimeLeft: (time) => set({ timeLeft: time }),
       setCurrentTrack: (id) => set({ currentTrackId: id }),
       setCurrentScene: (id) => set({ currentSceneId: id }),
       setMusicVolume: (volume) => set({ musicVolume: volume }),
-      setMusicPlaying: (playing) => set({ musicPlaying: playing }), // Add action implementation
+      setMusicPlaying: (playing) => set({ musicPlaying: playing }), 
+      setMusicProgress: (time, duration) => set({ musicCurrentTime: time, musicDuration: duration }),
+      setMusicSeek: (time) => set({ musicSeekRequest: time }),
+      
+      toggleFavoriteScene: (id) => set((state) => {
+          const exists = state.favoriteScenes.includes(id)
+          return {
+              favoriteScenes: exists 
+                  ? state.favoriteScenes.filter(sid => sid !== id)
+                  : [...state.favoriteScenes, id]
+          }
+      }),
+      toggleFavoriteTrack: (id) => set((state) => {
+          const exists = state.favoriteTracks.includes(id)
+          return {
+              favoriteTracks: exists 
+                  ? state.favoriteTracks.filter(tid => tid !== id)
+                  : [...state.favoriteTracks, id]
+          }
+      }),
+      setActivePlaylist: (playlist) => set({ activePlaylist: playlist }),
+      setQueue: (trackIds) => set({ queue: trackIds }),
+            toggleShuffle: () => set(state => ({ isShuffled: !state.isShuffled })),
+            toggleVisualizer: () => set(state => ({ showVisualizer: !state.showVisualizer })),
+      setVisualizerStyle: (style) => set({ visualizerStyle: style }),      setVisualizerSensitivity: (sensitivity) => set({ visualizerSensitivity: sensitivity }),      
+      setLoopMode: (mode) => set({ loopMode: mode }),
+      sendPlayerCommand: (command) => set({ playerCommand: command }),
+
       toggleTodos: () => set((state) => ({ showTodos: !state.showTodos })),
       toggleSettings: () => set((state) => ({ showSettings: !state.showSettings })),
 
@@ -142,9 +231,23 @@ export const useAppStore = create<AppState>()(
       },
 
       updatePreferences: (prefs) => {
-        set((state) => ({
-          preferences: { ...state.preferences, ...prefs },
-        }))
+        set((state) => {
+           const newPreferences = { ...state.preferences, ...prefs }
+           let updates: Partial<AppState> = { preferences: newPreferences }
+           
+           // Check if duration for current mode changed
+           const currentMode = state.timerMode
+           const focusChanged = prefs.focusDuration !== undefined && prefs.focusDuration !== state.preferences.focusDuration
+           const breakChanged = prefs.breakDuration !== undefined && prefs.breakDuration !== state.preferences.breakDuration
+           
+           if ((currentMode === 'focus' && focusChanged) || (currentMode === 'break' && breakChanged)) {
+               const newDuration = currentMode === 'focus' ? newPreferences.focusDuration : newPreferences.breakDuration
+               updates.isPlaying = false
+               updates.timeLeft = newDuration * 60
+           }
+           
+           return updates
+        })
       },
 
       resetTimer: () => {
@@ -163,13 +266,25 @@ export const useAppStore = create<AppState>()(
       },
     }),
     {
-      name: "lofi-study-storage",
+      name: "lofi-study-storage-v2",
       partialize: (state) => ({
         todos: state.todos,
         preferences: state.preferences,
         currentTrackId: state.currentTrackId,
         currentSceneId: state.currentSceneId,
         ambientSounds: state.ambientSounds,
+        favoriteScenes: state.favoriteScenes,
+        favoriteTracks: state.favoriteTracks,
+        activePlaylist: state.activePlaylist,
+        queue: state.queue, // Persist queue
+        isShuffled: state.isShuffled,
+        loopMode: state.loopMode,
+        showVisualizer: state.showVisualizer,
+        visualizerStyle: state.visualizerStyle,
+        visualizerSensitivity: state.visualizerSensitivity,
+        // Persist timer state
+        timerMode: state.timerMode,
+        timeLeft: state.timeLeft,
       }),
     },
   ),

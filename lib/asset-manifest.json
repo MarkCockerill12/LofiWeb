@@ -1,0 +1,318 @@
+{
+  "generatedAt": "2026-01-12T00:00:57.148Z",
+  "musicTracks": [
+    {
+      "id": "track-0",
+      "title": "Waterfall - Toby Fox",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Video%20Game/Waterfall%20-%20Toby%20Fox.mp3",
+      "category": "Video Game"
+    },
+    {
+      "id": "track-1",
+      "title": "Game Over(Super Mario World LoFi Remix) - Kenma",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Video%20Game/Game%20Over(Super%20Mario%20World%20LoFi%20Remix)%20-%20Kenma.mp3",
+      "category": "Video Game"
+    },
+    {
+      "id": "track-2",
+      "title": "Fairy Fountain(LoFi Remix) - Mikel",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Video%20Game/Fairy%20Fountain(LoFi%20Remix)%20-%20Mikel.mp3",
+      "category": "Video Game"
+    },
+    {
+      "id": "track-3",
+      "title": "Animal Crossing New Horizons LoFi - Closed on Sunday",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Video%20Game/Animal%20Crossing%20New%20Horizons%20LoFi%20-%20Closed%20on%20Sunday.mp3",
+      "category": "Video Game"
+    },
+    {
+      "id": "track-4",
+      "title": "We're Finally Landing - Home",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/We're%20Finally%20Landing%20-%20Home.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-5",
+      "title": "The reason why - Ayasa",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/The%20reason%20why%20-%20Ayasa.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-6",
+      "title": "The Lobotomy",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/The%20Lobotomy.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-7",
+      "title": "Starly(Slowed) - LONOWN",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Starly(Slowed)%20-%20LONOWN.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-8",
+      "title": "SO TIRED ROCK - NUEKI",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/SO%20TIRED%20ROCK%20-%20NUEKI.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-9",
+      "title": "Six Forty Seven - Instupendo",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Six%20Forty%20Seven%20-%20Instupendo.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-10",
+      "title": "School Rooftop(Bird Sounds) - Hisohkah",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/School%20Rooftop(Bird%20Sounds)%20-%20Hisohkah.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-11",
+      "title": "Roi(Instrumental) - Mckyyy",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Roi(Instrumental)%20-%20Mckyyy.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-12",
+      "title": "Resonance - Home",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Resonance%20-%20Home.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-13",
+      "title": "Pussypodium(Slowed) - akiaura",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Pussypodium(Slowed)%20-%20akiaura.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-14",
+      "title": "Piano And Rain- Nature Sounds King",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Piano%20And%20Rain-%20Nature%20Sounds%20King.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-15",
+      "title": "n u a g e s - closer",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/n%20u%20a%20g%20e%20s%20-%20closer.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-16",
+      "title": "It Was A Good Day - Ice Cube",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/It%20Was%20A%20Good%20Day%20-%20Ice%20Cube.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-17",
+      "title": "I just want to be the one you love(Slowed) - cryst ",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/I%20just%20want%20to%20be%20the%20one%20you%20love(Slowed)%20-%20cryst%20.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-18",
+      "title": "Hanging Lanterns - Kalaido",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Hanging%20Lanterns%20-%20Kalaido.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-19",
+      "title": "Forgotten",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Forgotten.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-20",
+      "title": "Feel Something(Slowed) - Bea Miller",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Feel%20Something(Slowed)%20-%20Bea%20Miller.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-21",
+      "title": "Eternal Youth - RŮDE",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Eternal%20Youth%20-%20R%C5%AEDE.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-22",
+      "title": "Dissolve - Absofacto",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Dissolve%20-%20Absofacto.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-23",
+      "title": "Did i tell u that i miss u(Slowed) - adore",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Did%20i%20tell%20u%20that%20i%20miss%20u(Slowed)%20-%20adore.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-24",
+      "title": "Desolate (Slowed) -Erik ヵ",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Desolate%20(Slowed)%20-Erik%20%E3%83%B5.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-25",
+      "title": "Cut My Hair - Mounika.",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Cut%20My%20Hair%20-%20Mounika..mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-26",
+      "title": "Comfort Chain - Instupendo",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/Comfort%20Chain%20-%20Instupendo.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-27",
+      "title": "April Showers - Proleter",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/Vibes/April%20Showers%20-%20Proleter.mp3",
+      "category": "Vibes"
+    },
+    {
+      "id": "track-28",
+      "title": "Forget - Pogo",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/LoFi/Forget%20-%20Pogo.mp3",
+      "category": "LoFi"
+    },
+    {
+      "id": "track-29",
+      "title": "Chill Noons - Kronicle",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/LoFi/Chill%20Noons%20-%20Kronicle.mp3",
+      "category": "LoFi"
+    },
+    {
+      "id": "track-30",
+      "title": "Cantina band(LoFi Remix)- Closed on Sunday",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/LoFi/Cantina%20band(LoFi%20Remix)-%20Closed%20on%20Sunday.mp3",
+      "category": "LoFi"
+    },
+    {
+      "id": "track-31",
+      "title": "Call me - 90sFlav",
+      "artist": "Lofi Selection",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/music/LoFi/Call%20me%20-%2090sFlav.mp3",
+      "category": "LoFi"
+    }
+  ],
+  "backgroundScenes": [
+    {
+      "id": "scene-0",
+      "name": "Sakura River",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Sakura%20River.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Sakura River.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-1",
+      "name": "Retrowave Mountain",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Retrowave%20Mountain.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Retrowave Mountain.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-2",
+      "name": "Night City Pixel",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Night%20City%20Pixel.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Night City Pixel.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-3",
+      "name": "Moonlit Lake Reflection",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Moonlit%20Lake%20Reflection.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Moonlit Lake Reflection.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-4",
+      "name": "Moonlight Flower Field",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Moonlight%20Flower%20Field.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Moonlight Flower Field.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-5",
+      "name": "Minecraft Field",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Minecraft%20Field.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Minecraft Field.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-6",
+      "name": "Magma Vortex",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Magma%20Vortex.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Magma Vortex.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-7",
+      "name": "Galactic Bedroom",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Galactic%20Bedroom.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Galactic Bedroom.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-8",
+      "name": "Deltarune Fountain",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Deltarune%20Fountain.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Deltarune Fountain.webp",
+      "category": "Other"
+    },
+    {
+      "id": "scene-9",
+      "name": "Bongo Cat Neon",
+      "videoUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/Bongo%20Cat%20Neon.webm",
+      "thumbnailUrl": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/backgrounds/thumbnails/Bongo Cat Neon.webp",
+      "category": "Other"
+    }
+  ],
+  "ambienceSounds": [
+    {
+      "id": "sfx-0",
+      "name": "Rain",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/sounds/Rain.mp3"
+    },
+    {
+      "id": "sfx-1",
+      "name": "Keyboard",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/sounds/Keyboard.mp3"
+    },
+    {
+      "id": "sfx-2",
+      "name": "Cafe",
+      "url": "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/sounds/Cafe.mp3"
+    }
+  ]
+}

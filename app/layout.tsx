@@ -7,7 +7,7 @@ import "./globals.css"
 const geist = Geist({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Lofi Study Station - Focus & Productivity",
+  title: "LoFi Web",
   description: "A minimalist study tool with lofi music, video backgrounds, and Pomodoro timer",
   generator: "v0.app",
   icons: {

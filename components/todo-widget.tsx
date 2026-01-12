@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { getUIColors } from "@/lib/utils"
 import { backgroundScenes } from "@/lib/data"
+import confetti from "canvas-confetti"
 
 const THEME_COLORS = {
   cyan: "#06b6d4",
@@ -55,6 +56,20 @@ export function TodoWidget() {
       addTodo(newTodoText.trim())
       setNewTodoText("")
     }
+  }
+
+  const handleToggleTodo = (id: string, currentStatus: boolean) => {
+    if (!currentStatus) {
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: [THEME_COLORS[themeColor]],
+        zIndex: 200,
+        disableForReducedMotion: true,
+      })
+    }
+    toggleTodo(id)
   }
 
   const TodoContent = (
@@ -123,7 +138,7 @@ export function TodoWidget() {
             >
               <Checkbox
                 checked={todo.completed}
-                onCheckedChange={() => toggleTodo(todo.id)}
+                onCheckedChange={() => handleToggleTodo(todo.id, todo.completed)}
                 style={{
                   borderColor: color,
                   backgroundColor: todo.completed ? color : undefined,
@@ -210,7 +225,7 @@ export function TodoWidget() {
                   >
                     <Checkbox
                       checked={todo.completed}
-                      onCheckedChange={() => toggleTodo(todo.id)}
+                      onCheckedChange={() => handleToggleTodo(todo.id, todo.completed)}
                       style={{
                         borderColor: color,
                         backgroundColor: todo.completed ? color : undefined,
