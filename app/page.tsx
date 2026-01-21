@@ -4,6 +4,7 @@ import { BackgroundLayer } from "@/components/background-layer"
 import { AmbientPlayer } from "@/components/ambient-player"
 import { MusicPlayer } from "@/components/music-player"
 import { TimerDisplay } from "@/components/timer-display"
+import { TimeDisplay } from "@/components/time-display"
 import { ControlBar } from "@/components/control-bar"
 import { TodoWidget } from "@/components/todo-widget"
 import { SettingsMenu } from "@/components/settings-menu"
@@ -119,15 +120,31 @@ export default function Page() {
     }
   }, [isCooldown, cooldownSeconds, timerMode, preferences, setIsCooldown, setTimerMode, setTimeLeft, setIsPlaying])
 
+  const { showTime, showTimer } = preferences
+
   return (
     <main className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <BackgroundLayer />
       <AmbientPlayer />
       <MusicPlayer />
 
+      {/* Top Time Display (when both active) */}
+      {showTime && showTimer && (
+        <div className="absolute top-8 sm:top-12 z-20 animate-in slide-in-from-top-4 duration-700 fade-in select-none">
+          <div className="scale-75 sm:scale-90 origin-top">
+            <TimeDisplay />
+          </div>
+        </div>
+      )}
+
+      {/* Middle Content */}
       <div className="relative z-10 w-full px-4">
         <div className="flex items-center justify-center">
-          <TimerDisplay />
+          {showTimer ? (
+             <TimerDisplay />
+          ) : showTime ? (
+             <TimeDisplay />
+          ) : null}
         </div>
       </div>
 

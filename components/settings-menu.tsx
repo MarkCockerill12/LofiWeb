@@ -128,6 +128,7 @@ export function SettingsMenu() {
   }
 
   const { secondaryColor, uiMode } = preferences
+  const activeClockStyle = preferences.clockStyle || 'default'
 
   const currentScene = backgroundScenes.find((s) => s.id === currentSceneId)
   const bgHex = secondaryColor
@@ -331,6 +332,27 @@ export function SettingsMenu() {
                 </TabsContent>
 
                 <TabsContent value="timer" className="space-y-6 mt-6">
+                  <div className="space-y-4 pb-6 border-b" style={{ borderColor: uiColors.border }}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm" style={{ color: uiColors.text }}>
+                          Show Clock
+                        </span>
+                        <Switch 
+                          checked={preferences.showTime} 
+                          onCheckedChange={(checked) => updatePreferences({ showTime: checked })} 
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm" style={{ color: uiColors.text }}>
+                          Show Timer
+                        </span>
+                        <Switch 
+                          checked={preferences.showTimer} 
+                          onCheckedChange={(checked) => updatePreferences({ showTimer: checked })} 
+                        />
+                      </div>
+                  </div>
+
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-medium" style={{ color: uiColors.textSecondary }}>
@@ -462,6 +484,27 @@ export function SettingsMenu() {
                           Neon Glow
                         </p>
                       </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium mb-3" style={{ color: uiColors.textSecondary }}>
+                      Clock Style
+                    </h3>
+                    <div className="grid grid-cols-4 gap-2">
+                         {(['default', 'clean', 'box', 'pill'] as const).map((style) => (
+                             <button
+                                key={style}
+                                onClick={() => updatePreferences({ clockStyle: style })}
+                                className={`p-2 rounded-lg transition-all border flex flex-col items-center gap-1 justify-center capitalize`}
+                                style={{
+                                    backgroundColor: activeClockStyle === style ? `${uiColors.bgBase}40` : "transparent",
+                                    borderColor: activeClockStyle === style ? uiColors.text : uiColors.border,
+                                }}
+                             >
+                                <span className="text-xs font-medium" style={{ color: uiColors.text }}>{style}</span>
+                             </button>
+                         ))}
                     </div>
                   </div>
 

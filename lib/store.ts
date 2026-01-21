@@ -20,7 +20,10 @@ interface Preferences {
   timerOpacity: number
   volume: number
   ambientVolume: number
-  uiMode: "auto" | "light" | "dark" // Added UI mode preference
+  uiMode: "auto" | "light" | "dark"
+  showTime: boolean
+  showTimer: boolean
+  clockStyle: "default" | "clean" | "box" | "pill"
 }
 
 interface AmbientSounds {
@@ -161,6 +164,9 @@ export const useAppStore = create<AppState>()(
         volume: 0.5,
         ambientVolume: 0.3,
         uiMode: "auto",
+        showTime: true,
+        showTimer: true,
+        clockStyle: "default",
       },
 
       // Actions
