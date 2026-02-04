@@ -91,12 +91,19 @@
 }
 
 /* Custom glassmorphism utilities */
+/* Optimized for performance: replaced backdrop-filter with noise overlays */
 .glass {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(15, 15, 15, 0.4);
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  background-repeat: repeat;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
 }
 
 .glass-strong {
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background-color: rgba(10, 10, 10, 0.7);
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  background-repeat: repeat;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }

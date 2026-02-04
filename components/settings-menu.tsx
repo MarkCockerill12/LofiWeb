@@ -26,12 +26,12 @@ function SimpleSlider({ value, max = 100, min = 0, onChange, uiColors }: { value
         >
             <SliderPrimitive.Track className="bg-black/20 dark:bg-white/20 relative grow rounded-full h-1.5 overflow-hidden">
                 <SliderPrimitive.Range 
-                    className="absolute h-full transition-colors" 
+                    className="absolute h-full" 
                     style={{ backgroundColor: uiColors.text }}
                 />
             </SliderPrimitive.Track>
             <SliderPrimitive.Thumb
-                className="block w-4 h-4 bg-white rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:scale-110 focus:outline-none focus:scale-110 transition-transform opacity-0 group-hover:opacity-100"
+                className="block w-4 h-4 bg-white rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:scale-110 focus:outline-none focus:scale-110 transition-transform"
                 style={{ border: `2px solid ${uiColors.text}` }}
             />
         </SliderPrimitive.Root>

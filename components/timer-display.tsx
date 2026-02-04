@@ -149,12 +149,12 @@ export function TimerDisplay() {
         {themeVariant === 'neon' && (
              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div 
-                    className="rounded-full blur-md"
+                    className="rounded-full blur-xl"
                     style={{
-                        width: "220px",
-                        height: "220px",
+                        width: "260px",
+                        height: "260px",
                         backgroundColor: primaryColor,
-                        opacity: uiMode === 'dark' ? 0.35 : 0.25,
+                        opacity: uiMode === 'dark' ? 0.25 : 0.15,
                     }}
                 />
              </div>
@@ -173,11 +173,10 @@ export function TimerDisplay() {
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={circumference}
+            // Use subtle drop-shadow for main glowing circle
             style={{
-              filter:
-                themeVariant === "neon"
-                  ? `drop-shadow(0 0 8px ${primaryColor}) drop-shadow(0 0 16px ${primaryColor})`
-                  : "none",
+              opacity: themeVariant === "neon" ? 0.95 : 1,
+              filter: themeVariant === "neon" ? `drop-shadow(0 0 12px ${primaryColor})` : "none",
             }}
           />
         </svg>

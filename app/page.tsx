@@ -125,6 +125,7 @@ export default function Page() {
   return (
     <main className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <BackgroundLayer />
+      <AudioVisualizer />
       <AmbientPlayer />
       <MusicPlayer />
 
@@ -152,7 +153,6 @@ export default function Page() {
 
       <ControlBar />
       <SettingsMenu />
-      <AudioVisualizer />
 
       {isCooldown && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-500">

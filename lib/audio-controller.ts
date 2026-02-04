@@ -28,7 +28,8 @@ class AudioController {
             const ctx = this.getAudioContext();
             if (ctx) {
                 this.analyser = ctx.createAnalyser();
-                this.analyser.fftSize = 256; // Balance between detail and performance
+                // Balanced FFT size for performance and visual clarity
+                this.analyser.fftSize = 256; 
                 this.analyser.smoothingTimeConstant = 0.8;
             }
         }

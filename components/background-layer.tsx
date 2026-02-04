@@ -77,7 +77,7 @@ export function BackgroundLayer() {
       {/* Player 1 */}
       <video
         ref={video1Ref}
-        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out"
+        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out will-change-opacity"
         style={{ transitionDuration: `${CROSSFADE_DURATION}s` }}
         muted
         loop
@@ -87,7 +87,7 @@ export function BackgroundLayer() {
       {/* Player 2 */}
       <video
         ref={video2Ref}
-        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out opacity-0"
+        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out opacity-0 will-change-opacity"
         style={{ transitionDuration: `${CROSSFADE_DURATION}s` }}
         muted
         loop

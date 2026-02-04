@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getUIColors } from "@/lib/utils"
 import { musicTracks, SCENE_COLORS } from "@/lib/data"
-import { useState } from "react"
 import * as React from "react"
 
 // Simple native slider for volume
-function SimpleSlider({ value, max = 100, onChange, uiColors }: { value: number, max?: number, onChange: (val: number) => void, uiColors: any }) {
+function SimpleSlider({ value, max = 100, onChange, uiColors }: Readonly<{ value: number, max?: number, onChange: (val: number) => void, uiColors: any }>) {
     const percentage = Math.min(100, Math.max(0, (value / max) * 100));
     
     return (
@@ -27,16 +26,16 @@ function SimpleSlider({ value, max = 100, onChange, uiColors }: { value: number,
             />
             
             {/* Custom Track */}
-            <div className="absolute inset-0 h-1.5 rounded-full bg-black/20 dark:bg-white/20 overflow-hidden pointer-events-none">
+            <div className="absolute left-0 right-0 h-1.5 rounded-full bg-black/20 dark:bg-white/20 overflow-hidden pointer-events-none">
                 <div 
-                className="h-full transition-all bg-black dark:bg-white" 
+                className="h-full bg-black dark:bg-white" 
                 style={{ width: `${percentage}%`, backgroundColor: uiColors.text }}
                 />
             </div>
             
-            {/* Custom Thumb - Visible on Hover */}
+            {/* Custom Thumb - Always Visible */}
             <div 
-                className="absolute h-4 w-4 bg-white rounded-full shadow border transition-opacity pointer-events-none opacity-0 group-hover:opacity-100"
+                className="absolute h-4 w-4 bg-white rounded-full shadow border transition-transform pointer-events-none group-hover:scale-110 active:scale-95"
                 style={{ 
                     left: `${percentage}%`, 
                     transform: 'translateX(-50%)',
@@ -49,9 +48,22 @@ function SimpleSlider({ value, max = 100, onChange, uiColors }: { value: number,
     )
 }
 
-function MusicSlider({ currentTime, duration, uiColors, onSeek }: { currentTime: number, duration: number, uiColors: any, onSeek: (val: number) => void }) {
-    const [dragValue, setDragValue] = useState<number | null>(null)
+function MusicSlider({ currentTime, duration, uiColors, onSeek }: Readonly<{ currentTime: number, duration: number, uiColors: any, onSeek: (val: number) => void }>) {
+    const [dragValue, setDragValue] = React.useState<number | null>(null)
+    const isSeekingRef = React.useRef(false)
     
+    // Clear the drag value only when the store catches up with our seek
+    // or if we aren't seeking anymore.
+    React.useEffect(() => {
+        if (dragValue !== null && !isSeekingRef.current) {
+            // Check if prop currentTime is now "reasonably close" to where we moved it
+            // or if a decent amount of time has passed.
+            if (Math.abs(currentTime - dragValue) < 2) {
+                setDragValue(null)
+            }
+        }
+    }, [currentTime, dragValue])
+
     // Use drag value if dragging, otherwise source of truth
     const currentValue = dragValue ?? currentTime;
     
@@ -81,42 +93,43 @@ function MusicSlider({ currentTime, duration, uiColors, onSeek }: { currentTime:
                     max={safeDuration} 
                     step={1}
                     value={safeCurrent}
+                    onMouseDown={() => { isSeekingRef.current = true }}
                     onInput={(e) => {
                          setDragValue(Number(e.currentTarget.value))
                     }}
                     onChange={() => {}} // Controlled input requires onChange or readOnly, but onInput handles updates
                     onMouseUp={(e) => {
                           const val = Number(e.currentTarget.value)
-                          setDragValue(null)
+                          isSeekingRef.current = false
                           onSeek(val)
                     }}
+                    onTouchStart={() => { isSeekingRef.current = true }}
                     onTouchEnd={(e) => {
                           const val = Number(e.currentTarget.value)
-                          setDragValue(null)
+                          isSeekingRef.current = false
                           onSeek(val)
                     }}
                     className="absolute inset-0 w-full opacity-0 z-10 cursor-pointer"
                  />
                  
                  {/* Custom Track */}
-                 <div className="absolute inset-0 h-1.5 rounded-full bg-black/20 dark:bg-white/20 overflow-hidden pointer-events-none">
+                 <div className="absolute left-0 right-0 h-1.5 rounded-full bg-black/20 dark:bg-white/20 overflow-hidden pointer-events-none">
                      <div 
-                        className="h-full transition-all bg-black dark:bg-white" 
+                        className="h-full bg-black dark:bg-white" 
                         style={{ width: `${percentage}%`, backgroundColor: uiColors.text }}
                      />
                  </div>
                  
-                 {/* Custom Thumb - Visible on Group Hover or Dragging */}
+                 {/* Custom Thumb - Always Visible */}
                  <div 
-                    className="absolute h-4 w-4 bg-white rounded-full shadow border transition-opacity pointer-events-none"
+                    className="absolute h-4 w-4 bg-white rounded-full shadow border transition-transform pointer-events-none group-hover:scale-110"
                     style={{ 
                         left: `${percentage}%`, 
                         transform: 'translateX(-50%)',
                         borderColor: uiColors.text,
-                        opacity: dragValue === null ? 0 : 1 
                     }}
                  >
-                     <div className="absolute inset-0 rounded-full opacity-20 group-hover:opacity-100" style={{ backgroundColor: uiColors.text }}></div>
+                     <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-20" style={{ backgroundColor: uiColors.text }}></div>
                  </div>
             </div>
         </div>
