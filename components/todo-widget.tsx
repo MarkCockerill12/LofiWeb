@@ -102,7 +102,7 @@ export function TodoWidget() {
           placeholder="Add a task..."
           className="text-sm h-9"
           style={{
-            backgroundColor: `${uiColors.bg}66`,
+            backgroundColor: "#0a0a0a",
             borderColor: newTodoText ? color : uiColors.border,
             color: uiColors.text,
           }}
@@ -131,7 +131,7 @@ export function TodoWidget() {
               key={todo.id}
               className="flex items-center gap-2 p-2 rounded-lg transition-all group"
               style={{
-                backgroundColor: `${uiColors.bg}66`,
+                backgroundColor: "#080808",
                 opacity: todo.completed ? 0.6 : 1,
               }}
             >
@@ -218,7 +218,7 @@ export function TodoWidget() {
                     key={todo.id}
                     className="flex items-center gap-3 p-3 rounded-lg transition-all group"
                     style={{
-                      backgroundColor: `${uiColors.bg}66`,
+                      backgroundColor: "#080808",
                       opacity: todo.completed ? 0.6 : 1,
                     }}
                   >

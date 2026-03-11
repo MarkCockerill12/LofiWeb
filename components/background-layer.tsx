@@ -28,14 +28,17 @@ export function BackgroundLayer() {
 
     if (!activeRef || !nextRef) return
 
-    // Scene Switching Crossfade
-    isTransitioningRef.current = true
-    
     // Prepare next player
+    nextRef.style.display = "block"
+    nextRef.style.visibility = "visible"
+    nextRef.style.willChange = "opacity"
     nextRef.src = scene.videoUrl
     nextRef.currentTime = 0
-    nextRef.style.opacity = "0" // Start hidden
-    nextRef.load() // Ensure ready
+    nextRef.style.opacity = "0" 
+    nextRef.load() 
+    
+    // Prepare active player for fade out
+    activeRef.style.willChange = "opacity"
     
     const playPromise = nextRef.play()
     
@@ -52,10 +55,18 @@ export function BackgroundLayer() {
                 setActivePlayer(nextPlayerIdx)
                 isTransitioningRef.current = false
                 
-                // Pause old one to save resources
+                // Finalize styles
+                nextRef.style.willChange = "auto"
+                
+                // Pause, hide AND UNLOAD old one to save hardware resources
                 if (activeRef) {
                     activeRef.pause()
-                    activeRef.currentTime = 0 
+                    activeRef.src = "" // Release hardware decoder
+                    activeRef.load()   // Force unload
+                    activeRef.style.opacity = "0"
+                    activeRef.style.display = "none"
+                    activeRef.style.visibility = "hidden"
+                    activeRef.style.willChange = "auto"
                 }
             }, CROSSFADE_DURATION * 1000)
         }).catch(error => {
@@ -77,8 +88,12 @@ export function BackgroundLayer() {
       {/* Player 1 */}
       <video
         ref={video1Ref}
-        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out will-change-opacity"
-        style={{ transitionDuration: `${CROSSFADE_DURATION}s` }}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out"
+        style={{ 
+          transitionDuration: `${CROSSFADE_DURATION}s`,
+          display: activePlayer === 1 ? 'block' : 'none',
+          visibility: activePlayer === 1 ? 'visible' : 'hidden'
+        }}
         muted
         loop
         playsInline
@@ -87,8 +102,12 @@ export function BackgroundLayer() {
       {/* Player 2 */}
       <video
         ref={video2Ref}
-        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out opacity-0 will-change-opacity"
-        style={{ transitionDuration: `${CROSSFADE_DURATION}s` }}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out opacity-0"
+        style={{ 
+          transitionDuration: `${CROSSFADE_DURATION}s`,
+          display: activePlayer === 2 ? 'block' : 'none',
+          visibility: activePlayer === 2 ? 'visible' : 'hidden'
+        }}
         muted
         loop
         playsInline

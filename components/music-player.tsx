@@ -2,7 +2,7 @@
 
 import { useAppStore } from "@/lib/store"
 import { musicTracks } from "@/lib/data"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { audioController } from "@/lib/audio-controller" // Import controller
 
 const CROSSFADE_DURATION = 3 // seconds
@@ -49,21 +49,17 @@ export function MusicPlayer() {
 
   // Determine current playlist logic
   // If queue is populated, use it. If empty, fallback to activePlaylist logic for safety/init
-  const getPlaylist = () => {
+  // Memoize playlist logic to avoid recalculating on every render
+  const playlist = useMemo(() => {
       if (queue && queue.length > 0) {
-          // Map queue IDs to tracks, filter out invalid ones
           const tracks = queue.map(id => musicTracks.find(t => t.id === id)).filter(Boolean) as typeof musicTracks;
-          // If queue somehow has tracks, return them
           if (tracks.length > 0) return tracks;
       }
       
-      // Fallback (or if store queue logic isn't used everywhere yet)
       if (activePlaylist === 'all') return musicTracks;
       if (activePlaylist === 'favorites') return musicTracks.filter(t => favoriteTracks.includes(t.id));
       return musicTracks.filter(t => t.category === activePlaylist);
-  }
-  
-  const playlist = getPlaylist();
+  }, [queue, activePlaylist, favoriteTracks]);
 
   // Handle Player Commands (Prev/Restart/Next)
   useEffect(() => {

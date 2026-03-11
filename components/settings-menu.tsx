@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { backgroundScenes, musicTracks, SCENE_COLORS } from "@/lib/data"
+import { THEME_COLORS } from "@/lib/constants"
 import type { ThemeColor, ThemeVariant } from "@/lib/store"
 import { useState, useRef, useEffect } from "react"
 import { getUIColors } from "@/lib/utils"
@@ -40,15 +41,7 @@ function SimpleSlider({ value, max = 100, min = 0, onChange, uiColors }: { value
 
 
 
-const THEME_COLORS: { color: ThemeColor; hex: string; label: string }[] = [
-  { color: "cyan", hex: "#06b6d4", label: "Cyan" },
-  { color: "purple", hex: "#a855f7", label: "Purple" },
-  { color: "orange", hex: "#f97316", label: "Orange" },
-  { color: "green", hex: "#10b981", label: "Green" },
-  { color: "pink", hex: "#ec4899", label: "Pink" },
-  { color: "white", hex: "#ffffff", label: "White" },
-  { color: "black", hex: "#000000", label: "Black" },
-]
+// THEME_COLORS moved to lib/constants.ts
 
 
 const UI_COLORS_EXTENDED = {
@@ -127,12 +120,12 @@ export function SettingsMenu() {
       setHoveredSceneId(null)
   }
 
-  const { secondaryColor, uiMode } = preferences
-  const activeClockStyle = preferences.clockStyle || 'default'
+  const { secondaryColor, uiMode, timerOpacity, clockStyle } = preferences
+  const activeClockStyle = clockStyle || 'default'
 
   const currentScene = backgroundScenes.find((s) => s.id === currentSceneId)
   const bgHex = secondaryColor
-    ? THEME_COLORS.find((c) => c.color === secondaryColor)?.hex
+    ? THEME_COLORS[secondaryColor as keyof typeof THEME_COLORS]
     : (currentSceneId && SCENE_COLORS[currentSceneId]) || "#000000"
   const uiColors = getUIColors(bgHex, uiMode)
 
@@ -177,7 +170,7 @@ export function SettingsMenu() {
                 <TabsList
                   className="grid w-full grid-cols-3"
                   style={{
-                    backgroundColor: `${uiColors.bgBase}40`,
+                    backgroundColor: "#050505",
                   }}
                 >
                   <TabsTrigger 
@@ -237,7 +230,7 @@ export function SettingsMenu() {
                             alt={scene.name}
                             className="w-full aspect-video object-cover"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
                           <p className="absolute bottom-2 left-2 text-xs text-white font-medium">{scene.name}</p>
                         </button>
                       ))}
@@ -396,10 +389,10 @@ export function SettingsMenu() {
                       Primary Color
                     </h3>
                     <div className="grid grid-cols-3 gap-3">
-                      {THEME_COLORS.map(({ color, hex, label }) => (
+                      {Object.entries(THEME_COLORS).map(([color, hex]) => (
                         <button
                           key={color}
-                          onClick={() => updatePreferences({ themeColor: color })}
+                          onClick={() => updatePreferences({ themeColor: color as ThemeColor })}
                           className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all`}
                           style={{
                             backgroundColor:
@@ -411,8 +404,8 @@ export function SettingsMenu() {
                             className="w-10 h-10 rounded-full border-2"
                             style={{ backgroundColor: hex, borderColor: uiColors.border }}
                           />
-                          <span className="text-xs" style={{ color: uiColors.text }}>
-                            {label}
+                          <span className="text-xs capitalize" style={{ color: uiColors.text }}>
+                            {color}
                           </span>
                         </button>
                       ))}
@@ -424,10 +417,10 @@ export function SettingsMenu() {
                       Secondary Color (Timer BG)
                     </h3>
                     <div className="grid grid-cols-3 gap-3">
-                      {THEME_COLORS.map(({ color, hex, label }) => (
+                      {Object.entries(THEME_COLORS).map(([color, hex]) => (
                         <button
                           key={color}
-                          onClick={() => updatePreferences({ secondaryColor: color })}
+                          onClick={() => updatePreferences({ secondaryColor: color as ThemeColor })}
                           className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-all`}
                           style={{
                             backgroundColor:
@@ -439,8 +432,8 @@ export function SettingsMenu() {
                             className="w-10 h-10 rounded-full border-2"
                             style={{ backgroundColor: hex, borderColor: uiColors.border }}
                           />
-                          <span className="text-xs" style={{ color: uiColors.text }}>
-                            {label}
+                          <span className="text-xs capitalize" style={{ color: uiColors.text }}>
+                            {color}
                           </span>
                         </button>
                       ))}
@@ -674,7 +667,7 @@ export function SettingsMenu() {
                                       <img
                                           src={scene.thumbnailUrl || "/placeholder.svg"}
                                           alt={scene.name}
-                                          className="md:hidden w-16 h-10 rounded-md object-cover flex-shrink-0"
+                                          className="md:hidden w-16 h-10 rounded-md object-cover shrink-0"
                                       />
 
                                       {/* Desktop Preview */}
@@ -684,7 +677,7 @@ export function SettingsMenu() {
                                           className="hidden md:block w-full aspect-video object-cover"
                                       />
                                       
-                                      <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                                      <div className="hidden md:block absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                                       
                                       {/* Desktop Caption */}
                                       <div className="hidden md:flex absolute bottom-2 left-2 z-20 flex-col items-start pointer-events-none">
@@ -727,7 +720,7 @@ export function SettingsMenu() {
                                         loop 
                                         className="absolute inset-0 w-full h-full object-cover animate-in fade-in duration-500"
                                       />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
+                                      <div className="absolute inset-0 bg-linear-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
                                       <div className="absolute bottom-6 left-6 z-20">
                                           <h2 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">{previewScene.name}</h2>
                                           <div className="flex items-center gap-2">

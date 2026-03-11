@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getUIColors } from "@/lib/utils"
 import { musicTracks, SCENE_COLORS } from "@/lib/data"
+import { THEME_COLORS } from "@/lib/constants"
 import * as React from "react"
 
 // Simple native slider for volume
@@ -136,15 +137,7 @@ function MusicSlider({ currentTime, duration, uiColors, onSeek }: Readonly<{ cur
     )
 }
 
-const THEME_COLORS = {
-  cyan: "#06b6d4",
-  purple: "#a855f7",
-  orange: "#f97316",
-  green: "#10b981",
-  pink: "#ec4899",
-  white: "#ffffff",
-  black: "#000000",
-}
+// THEME_COLORS moved to lib/constants.ts
 
 
 export function ControlBar() {
@@ -152,12 +145,13 @@ export function ControlBar() {
   const toggleTodos = useAppStore((state) => state.toggleTodos)
   const toggleSettings = useAppStore((state) => state.toggleSettings)
   const showTodos = useAppStore((state) => state.showTodos)
-  const preferences = useAppStore((state) => state.preferences)
-  const updatePreferences = useAppStore((state) => state.updatePreferences)
+  
   const themeColor = useAppStore((state) => state.preferences.themeColor)
   const secondaryColor = useAppStore((state) => state.preferences.secondaryColor)
   const uiMode = useAppStore((state) => state.preferences.uiMode)
-  const timerOpacity = useAppStore((state) => state.preferences.timerOpacity)
+  const volume = useAppStore((state) => state.preferences.volume)
+  const updatePreferences = useAppStore((state) => state.updatePreferences)
+
   const currentSceneId = useAppStore((state) => state.currentSceneId)
   const currentTrackId = useAppStore((state) => state.currentTrackId)
   const musicPlaying = useAppStore((state) => state.musicPlaying)
@@ -228,7 +222,9 @@ export function ControlBar() {
       setLoopMode(modes[(idx + 1) % modes.length])
   }
   
-  const playlistCategories = ['all', 'favorites', ...Array.from(new Set(musicTracks.map(t => t.category || 'Other')))]
+  const playlistCategories = React.useMemo(() => 
+    ['all', 'favorites', ...Array.from(new Set(musicTracks.map(t => t.category || 'Other')))]
+  , [])
 
   return (
     <div className="fixed top-4 right-4 z-40">
@@ -237,7 +233,6 @@ export function ControlBar() {
         style={{
           backgroundColor: uiColors.bg,
           borderColor: uiColors.border,
-          opacity: timerOpacity,
         }}
       >
         <div className="flex items-center gap-1.5">
@@ -375,10 +370,10 @@ export function ControlBar() {
                 <div className="space-y-2 pt-2">
                     <div className="flex items-center justify-between px-1">
                         <span className="text-xs font-medium" style={{ color: uiColors.textSecondary }}>Volume</span>
-                        <span className="text-xs font-medium" style={{ color: uiColors.text }}>{Math.round(preferences.volume * 100)}%</span>
+                        <span className="text-xs font-medium" style={{ color: uiColors.text }}>{Math.round(volume * 100)}%</span>
                     </div>
                     <SimpleSlider 
-                        value={preferences.volume * 100}
+                        value={volume * 100}
                         onChange={(val) => updatePreferences({ volume: val / 100 })}
                         max={100}
                         uiColors={uiColors}

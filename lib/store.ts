@@ -1,8 +1,9 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { THEME_COLORS } from "./constants"
 
 export type TimerMode = "focus" | "break"
-export type ThemeColor = "cyan" | "purple" | "orange" | "green" | "pink" | "white" | "black"
+export type ThemeColor = keyof typeof THEME_COLORS
 export type ThemeVariant = "minimal" | "neon"
 
 interface Todo {
@@ -239,9 +240,8 @@ export const useAppStore = create<AppState>()(
       updatePreferences: (prefs) => {
         set((state) => {
            const newPreferences = { ...state.preferences, ...prefs }
-           let updates: Partial<AppState> = { preferences: newPreferences }
+           const updates: Partial<AppState> = { preferences: newPreferences }
            
-           // Check if duration for current mode changed
            const currentMode = state.timerMode
            const focusChanged = prefs.focusDuration !== undefined && prefs.focusDuration !== state.preferences.focusDuration
            const breakChanged = prefs.breakDuration !== undefined && prefs.breakDuration !== state.preferences.breakDuration

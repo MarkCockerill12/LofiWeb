@@ -6,9 +6,11 @@ import { MusicPlayer } from "@/components/music-player"
 import { TimerDisplay } from "@/components/timer-display"
 import { TimeDisplay } from "@/components/time-display"
 import { ControlBar } from "@/components/control-bar"
-import { TodoWidget } from "@/components/todo-widget"
-import { SettingsMenu } from "@/components/settings-menu"
-import { CookiePopup } from "@/components/cookie-popup"
+import dynamic from "next/dynamic"
+
+const TodoWidget = dynamic(() => import("@/components/todo-widget").then(mod => mod.TodoWidget), { ssr: false })
+const SettingsMenu = dynamic(() => import("@/components/settings-menu").then(mod => mod.SettingsMenu), { ssr: false })
+const CookiePopup = dynamic(() => import("@/components/cookie-popup").then(mod => mod.CookiePopup), { ssr: false })
 import { AudioVisualizer } from "@/components/audio-visualizer"
 import { useAppStore } from "@/lib/store"
 import { useWorkerTimer } from "@/hooks/use-worker-timer"
@@ -32,7 +34,7 @@ export default function Page() {
 
   // Request notification permission on mount
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
+    if ("Notification" in globalThis && Notification.permission === "default") {
       Notification.requestPermission()
     }
   }, [])
@@ -45,8 +47,8 @@ export default function Page() {
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    globalThis.addEventListener("keydown", handleKeyDown)
+    return () => globalThis.removeEventListener("keydown", handleKeyDown)
   }, [isPlaying, setIsPlaying])
 
   // Handle timer tick
@@ -84,7 +86,7 @@ export default function Page() {
       setCooldownSeconds(5)
 
       // Show notification
-      if ("Notification" in window && Notification.permission === "granted") {
+      if ("Notification" in globalThis && Notification.permission === "granted") {
         const message = timerMode === "focus" 
           ? "Focus session complete! Take a breather." 
           : "Break is over! Time to focus."
@@ -141,11 +143,8 @@ export default function Page() {
       {/* Middle Content */}
       <div className="relative z-10 w-full px-4">
         <div className="flex items-center justify-center">
-          {showTimer ? (
-             <TimerDisplay />
-          ) : showTime ? (
-             <TimeDisplay />
-          ) : null}
+          {showTimer && <TimerDisplay />}
+          {!showTimer && showTime && <TimeDisplay />}
         </div>
       </div>
 
