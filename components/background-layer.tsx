@@ -10,7 +10,8 @@ export function BackgroundLayer() {
   const currentSceneId = useAppStore((state) => state.currentSceneId)
   
   const [activePlayer, setActivePlayer] = useState<1 | 2>(1)
-  const isTransitioningRef = useRef(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const currentUrlRef = useRef<string>("")
   
   const video1Ref = useRef<HTMLVideoElement>(null)
   const video2Ref = useRef<HTMLVideoElement>(null)
@@ -19,7 +20,7 @@ export function BackgroundLayer() {
 
   // Handle Scene Changes with Crossfade
   useEffect(() => {
-    if (!scene) return
+    if (!scene || isTransitioning) return
 
     // Identify which player is active and which is next
     const activeRef = activePlayer === 1 ? video1Ref.current : video2Ref.current
@@ -27,6 +28,12 @@ export function BackgroundLayer() {
     const nextPlayerIdx = activePlayer === 1 ? 2 : 1
 
     if (!activeRef || !nextRef) return
+
+    // Prevent crossfading if already playing this URL
+    if (currentUrlRef.current === scene.videoUrl) return
+
+    setIsTransitioning(true)
+    currentUrlRef.current = scene.videoUrl
 
     // Prepare next player
     nextRef.style.display = "block"
@@ -48,35 +55,34 @@ export function BackgroundLayer() {
             // Fade In Next
             nextRef.style.opacity = "1"
             // Fade Out Active
-            if (activeRef) activeRef.style.opacity = "0" 
+            activeRef.style.opacity = "0" 
             
             // Swap active state variable after transition completes
             setTimeout(() => {
                 setActivePlayer(nextPlayerIdx)
-                isTransitioningRef.current = false
+                setIsTransitioning(false)
                 
                 // Finalize styles
                 nextRef.style.willChange = "auto"
                 
-                // Pause, hide AND UNLOAD old one to save hardware resources
-                if (activeRef) {
-                    activeRef.pause()
-                    activeRef.src = "" // Release hardware decoder
-                    activeRef.load()   // Force unload
-                    activeRef.style.opacity = "0"
-                    activeRef.style.display = "none"
-                    activeRef.style.visibility = "hidden"
-                    activeRef.style.willChange = "auto"
-                }
+                // Pause and hide old one
+                activeRef.pause()
+                activeRef.style.opacity = "0"
+                activeRef.style.display = "none"
+                activeRef.style.visibility = "hidden"
+                activeRef.style.willChange = "auto"
             }, CROSSFADE_DURATION * 1000)
         }).catch(error => {
+            setIsTransitioning(false)
             // Ignore AbortError which happens when quickly switching scenes
             if (error.name !== "AbortError") {
                 console.error("Video play failed:", error)
             }
         })
+    } else {
+        setIsTransitioning(false)
     }
-  }, [currentSceneId, scene.videoUrl]) 
+  }, [currentSceneId, scene.videoUrl, isTransitioning, activePlayer]) 
 
   if (!scene) {
     return <div className="fixed inset-0 bg-black -z-10 flex items-center justify-center text-white/50">No scenes found</div>
@@ -91,12 +97,15 @@ export function BackgroundLayer() {
         className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out"
         style={{ 
           transitionDuration: `${CROSSFADE_DURATION}s`,
-          display: activePlayer === 1 ? 'block' : 'none',
-          visibility: activePlayer === 1 ? 'visible' : 'hidden'
+          display: activePlayer === 1 || isTransitioning ? 'block' : 'none',
+          visibility: activePlayer === 1 || isTransitioning ? 'visible' : 'hidden',
+          transform: 'translateZ(0)',
+          willChange: 'opacity'
         }}
         muted
         loop
         playsInline
+        preload="auto"
       />
       
       {/* Player 2 */}
@@ -105,12 +114,15 @@ export function BackgroundLayer() {
         className="absolute inset-0 w-full h-full object-cover transition-opacity ease-in-out opacity-0"
         style={{ 
           transitionDuration: `${CROSSFADE_DURATION}s`,
-          display: activePlayer === 2 ? 'block' : 'none',
-          visibility: activePlayer === 2 ? 'visible' : 'hidden'
+          display: activePlayer === 2 || isTransitioning ? 'block' : 'none',
+          visibility: activePlayer === 2 || isTransitioning ? 'visible' : 'hidden',
+          transform: 'translateZ(0)',
+          willChange: 'opacity'
         }}
         muted
         loop
         playsInline
+        preload="auto"
       />
     </div>
   )

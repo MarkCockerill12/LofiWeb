@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { audioController } from "@/lib/audio-controller";
 import { VISUALIZER_COLORS as COLORS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 // COLORS moved to lib/constants.ts
 
@@ -206,14 +207,20 @@ function AudioVisualizerCanvas() {
   const opacityRef = useRef(timerOpacity);
   const sensitivityRef = useRef(visualizerSensitivity);
   const playingRef = useRef(isMusicPlaying);
+  const isPausedRef = useRef(false);
+  const renderRef = useRef<(time: number) => void>(() => {});
+  const [isIdle, setIsIdle] = useState(true);
 
-  // Use a single effect for refs to avoid multiple subscription updates if possible,
-  // though Zustand selectors are already optimized.
   useEffect(() => {
     interactionRef.current = timerInteraction;
     colorRef.current = COLORS[secondaryColor] || COLORS.purple;
     opacityRef.current = timerOpacity;
     sensitivityRef.current = visualizerSensitivity;
+    
+    if (isMusicPlaying && !playingRef.current && isPausedRef.current) {
+        isPausedRef.current = false;
+        requestAnimationFrame(renderRef.current);
+    }
     playingRef.current = isMusicPlaying;
   }, [
     timerInteraction,
@@ -229,36 +236,42 @@ function AudioVisualizerCanvas() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     let animationId: number;
     let lastTime = 0;
     const fps = 24;
     const interval = 1000 / fps;
-    const resScale = 0.5; // Lower scale for better performance
+    const resScale = window.devicePixelRatio > 1 ? 1 : 0.75; // Adaptive resolution
 
     let analyser = audioController.getAnalyser();
-    let dataArray = analyser
-      ? new Uint8Array(analyser.frequencyBinCount)
-      : new Uint8Array(128).fill(0);
+    let dataArray = new Uint8Array(analyser ? analyser.frequencyBinCount : 128);
 
     const resize = () => {
-      const w = Math.floor(window.innerWidth * resScale);
-      const h = Math.floor(window.innerHeight * resScale);
+      // Cap at 1080p width-equivalent for GPU safety
+      const maxW = 1920;
+      const w = Math.min(window.innerWidth * resScale, maxW);
+      const h = (w / window.innerWidth) * window.innerHeight;
 
       canvas.width = w;
       canvas.height = h;
     };
 
     const render = (time: number) => {
+      // Handle pausing
+      if (!playingRef.current && isIdle) {
+          isPausedRef.current = true;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+      }
+
       animationId = requestAnimationFrame(render);
 
       const delta = time - lastTime;
-      const currentInterval = playingRef.current ? interval : 500; // Throttle to 2 FPS when idle
-      if (delta < currentInterval) return;
+      if (delta < interval) return;
 
-      lastTime = time - (delta % currentInterval);
+      lastTime = time - (delta % interval);
 
       const w = canvas.width;
       const h = canvas.height;
@@ -270,20 +283,23 @@ function AudioVisualizerCanvas() {
 
       analyser ??= audioController.getAnalyser();
 
-      if (analyser && dataArray.length !== analyser.frequencyBinCount) {
-        dataArray = new Uint8Array(analyser.frequencyBinCount);
-      }
-
       if (analyser) {
+        if (dataArray.length !== analyser.frequencyBinCount) {
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+        }
         audioController.getFrequencyData(dataArray);
       } else {
         dataArray.fill(0);
       }
 
-      const isSilence =
-        !playingRef.current ||
-        (dataArray[0] === 0 &&
-          dataArray[Math.floor(dataArray.length / 2)] === 0);
+      const isSilence = dataArray[0] === 0 && dataArray[Math.floor(dataArray.length / 2)] === 0;
+      
+      if (isSilence !== isIdle) {
+          setIsIdle(isSilence);
+      }
+
+      if (isSilence) return; // Skip drawing if silent, let CSS handle idle
+
       const baseOpacity = Math.max(0.2, opacityRef.current);
       const color = colorRef.current;
 
@@ -303,7 +319,7 @@ function AudioVisualizerCanvas() {
         color,
         baseOpacity,
         sensitivity: sensitivityRef.current,
-        isSilence,
+        isSilence: false,
         time,
       };
 
@@ -316,6 +332,7 @@ function AudioVisualizerCanvas() {
       }
     };
 
+    renderRef.current = render;
     window.addEventListener("resize", resize);
     resize();
     render(performance.now());
@@ -324,10 +341,13 @@ function AudioVisualizerCanvas() {
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(animationId);
     };
-  }, [visualizerStyle]);
+  }, [visualizerStyle, isIdle]);
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none">
+    <div className={cn(
+        "fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000",
+        isIdle ? "visualizer-idle" : "opacity-100"
+    )}>
       <canvas ref={canvasRef} className="w-full h-full block" />
     </div>
   );

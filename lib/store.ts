@@ -288,9 +288,6 @@ export const useAppStore = create<AppState>()(
         showVisualizer: state.showVisualizer,
         visualizerStyle: state.visualizerStyle,
         visualizerSensitivity: state.visualizerSensitivity,
-        // Persist timer state
-        timerMode: state.timerMode,
-        timeLeft: state.timeLeft,
       }),
     },
   ),

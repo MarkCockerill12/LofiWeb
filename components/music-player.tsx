@@ -25,6 +25,7 @@ export function MusicPlayer() {
   
   const [activePlayer, setActivePlayer] = useState<"A" | "B">("A")
   const isFirstRender = useRef(true)
+  const lastProcessedCommandRef = useRef<number>(0)
   
   const playerA = useRef<HTMLAudioElement>(null)
   const playerB = useRef<HTMLAudioElement>(null)
@@ -63,10 +64,9 @@ export function MusicPlayer() {
 
   // Handle Player Commands (Prev/Restart/Next)
   useEffect(() => {
-    if (!playerCommand) return;
+    if (!playerCommand || playerCommand.timestamp <= lastProcessedCommandRef.current) return;
     
-    // Check timestamp to avoid stale commands? 
-    // Usually store reset is better, but here we just react to change.
+    lastProcessedCommandRef.current = playerCommand.timestamp;
     
     if (playerCommand.type === 'prev') {
         const active = activePlayer === 'A' ? playerA.current : playerB.current
@@ -101,16 +101,7 @@ export function MusicPlayer() {
             if (playlist[nextIdx]) setCurrentTrack(playlist[nextIdx].id)
         }
     }
-  }, [playerCommand]) // Removed playlist/isShuffled/currentTrackId from dep array to avoid loops? 
-  // actually we need them inside. But if 'playlist' changes on every render, that's bad if useEffect runs then.
-  // But useEffect only runs if playerCommand changes (which is an object).
-  // playerCommand is updated by user action. It's not a loop source unless playerCommand is updated in a loop.
-  // The User says "Whenever i push the next track button I get this error".
-  // The error stack trace points to Popover/FocusScope/Render.
-  // So likely not this effect causing the *crash*, but maybe the state update it triggers.
-  
-  // To be safe, I will rely on refs or simple state for playlist inside the effect to avoid dep churn?
-  // No, let's keep it simple. playlist derived is fine if it's fast.
+  }, [playerCommand, activePlayer, currentTrackId, isPlaying, isShuffled, playlist, setCurrentTrack])
 
   // Handle Seek Request
   useEffect(() => {
@@ -123,7 +114,7 @@ export function MusicPlayer() {
         }
         setMusicSeek(null)
     }
-  }, [musicSeekRequest]) 
+  }, [musicSeekRequest, activePlayer, setMusicSeek]) 
 
   // Initialize volume
   useEffect(() => {
@@ -200,7 +191,7 @@ export function MusicPlayer() {
         playerB.current.volume = 0
     }
 
-  }, [currentTrackId, currentTrack]) // Removed volume dependency to prevent reset on volume change
+  }, [currentTrackId, currentTrack]) // Removed isPlaying, setMusicPlaying, and volume from dependencies
 
 
   const handleTimeUpdate = () => {
@@ -215,11 +206,12 @@ export function MusicPlayer() {
       const timeLeft = active.duration - active.currentTime
 
       if (loopMode === "one") {
-        if (timeLeft <= CROSSFADE_DURATION && timeLeft > 0) {
+        // Trigger crossfade slightly before end, only if not already crossfading
+        if (timeLeft <= CROSSFADE_DURATION && timeLeft > 0 && !isCrossfading.current) {
             startCrossfade(active, next)
         }
       } else {
-         if (active.ended || timeLeft <= 0.2) {
+         if (active.ended || (timeLeft <= 0.2 && active.duration > 0)) {
              if (loopMode === "all") {
                  if (isShuffled) {
                      const randomIdx = Math.floor(Math.random() * playlist.length)

@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { backgroundScenes, musicTracks, SCENE_COLORS } from "@/lib/data"
 import { THEME_COLORS } from "@/lib/constants"
 import type { ThemeColor, ThemeVariant } from "@/lib/store"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { getUIColors } from "@/lib/utils"
 import * as SliderPrimitive from "@radix-ui/react-slider"
 
 // Simple native slider 
-function SimpleSlider({ value, max = 100, min = 0, onChange, uiColors }: { value: number, max?: number, min?: number, onChange: (val: number) => void, uiColors: any }) {
+function SimpleSlider({ value, max = 100, min = 0, onChange, uiColors }: { value: number, max?: number, min?: number, onChange: (val: number) => void, uiColors: { bg: string, bgBase: string, text: string, textSecondary: string, border: string } }) {
     return (
         <SliderPrimitive.Root
             className="relative flex items-center select-none touch-none w-full h-5 group cursor-pointer"
@@ -44,10 +44,6 @@ function SimpleSlider({ value, max = 100, min = 0, onChange, uiColors }: { value
 // THEME_COLORS moved to lib/constants.ts
 
 
-const UI_COLORS_EXTENDED = {
-    // Add any specific UI overrides if needed
-}
-
 export function SettingsMenu() {
   const showSettings = useAppStore((state) => state.showSettings)
   const toggleSettings = useAppStore((state) => state.toggleSettings)
@@ -57,7 +53,6 @@ export function SettingsMenu() {
   const setCurrentScene = useAppStore((state) => state.setCurrentScene)
   const currentTrackId = useAppStore((state) => state.currentTrackId)
   const setCurrentTrack = useAppStore((state) => state.setCurrentTrack)
-  const activePlaylist = useAppStore((state) => state.activePlaylist)
   const setActivePlaylist = useAppStore((state) => state.setActivePlaylist)
   const setQueue = useAppStore((state) => state.setQueue) // Use setQueue
   const ambientSounds = useAppStore((state) => state.ambientSounds)
@@ -93,8 +88,6 @@ export function SettingsMenu() {
   const favoriteTracks = useAppStore((state) => state.favoriteTracks)
   const toggleFavoriteTrack = useAppStore((state) => state.toggleFavoriteTrack)
   
-  const showVisualizer = useAppStore(state => state.showVisualizer)
-  const toggleVisualizer = useAppStore(state => state.toggleVisualizer)
   const visualizerStyle = useAppStore(state => state.visualizerStyle)
   const setVisualizerStyle = useAppStore(state => state.setVisualizerStyle)
   const visualizerSensitivity = useAppStore(state => state.visualizerSensitivity)
@@ -120,10 +113,9 @@ export function SettingsMenu() {
       setHoveredSceneId(null)
   }
 
-  const { secondaryColor, uiMode, timerOpacity, clockStyle } = preferences
+  const { secondaryColor, uiMode, clockStyle } = preferences
   const activeClockStyle = clockStyle || 'default'
 
-  const currentScene = backgroundScenes.find((s) => s.id === currentSceneId)
   const bgHex = secondaryColor
     ? THEME_COLORS[secondaryColor as keyof typeof THEME_COLORS]
     : (currentSceneId && SCENE_COLORS[currentSceneId]) || "#000000"

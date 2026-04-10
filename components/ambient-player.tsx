@@ -17,7 +17,7 @@ function SeamlessLoop({ url, volume, active }: { url: string, volume: number, ac
     useEffect(() => {
         if(p1.current) p1.current.volume = volume
         if(p2.current) p2.current.volume = 0
-    }, [])
+    }, [volume])
 
     useEffect(() => {
          // Handle master volume or active state change
@@ -142,10 +142,6 @@ export function AmbientPlayer() {
       if (exact) return exact.url
       
       const fuzzy = sounds.find(s => s.name.toLowerCase().includes(searchKey.toLowerCase()))
-      // Improve fuzzy to avoid "Rain" matching "Rainy Cafe" if "rain" is search.
-      // But if "rain" key maps to "Heavy Rain" sound, "includes" is needed.
-      // To prevent "rain" matching "cafe" (e.g. "Rainy Cafe"), we should check if other keys match better?
-      // No, just trust the name.
       
       return fuzzy ? fuzzy.url : null
   }
@@ -156,11 +152,8 @@ export function AmbientPlayer() {
           const isEnabled = ambientState[key]
           const url = getSoundUrl(key)
           
-          if (!url) return null;
+          if (!url || !isEnabled) return null;
 
-          // We render the component even if disabled to keep state? 
-          // No, if disabled we can unmount it to save resources.
-          
           return (
               <SeamlessLoop key={key} url={url} volume={volume} active={isEnabled} />
           )

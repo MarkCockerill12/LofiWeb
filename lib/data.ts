@@ -90,22 +90,22 @@ function inferCategory(path: string, type: 'bg' | 'music'): string {
              if (lower.includes('jazz')) return 'Jazz';
              return 'Lofi';
         }
-    } catch (e) {
+    } catch {
         return 'Other';
     }
 }
 
-export const musicTracks: MusicTrack[] = assetManifest.musicTracks.map(t => ({
+export const musicTracks: MusicTrack[] = assetManifest.musicTracks.map((t: MusicTrack) => ({
   ...t,
   url: getUrl(t.url),
-  category: (t as any).category || inferCategory(t.url, 'music')
+  category: t.category || inferCategory(t.url, 'music')
 }));
 
-export const backgroundScenes: BackgroundScene[] = assetManifest.backgroundScenes.map(s => ({
+export const backgroundScenes: BackgroundScene[] = assetManifest.backgroundScenes.map((s: BackgroundScene) => ({
   ...s,
   videoUrl: getUrl(s.videoUrl),
   thumbnailUrl: getUrl(s.thumbnailUrl),
-  category: (s as any).category || inferCategory(s.videoUrl, 'bg')
+  category: s.category || inferCategory(s.videoUrl, 'bg')
 }));
 
 // Logic to find specific alarm sound or fallback
@@ -113,11 +113,11 @@ export const alarmSounds: SoundEffect[] = [
   { 
     id: 'alarm-1', 
     name: 'Gentle Chime', 
-    url: getUrl(assetManifest.ambienceSounds.find((s: any) => s.name.includes('chime'))?.url || '')
+    url: getUrl(assetManifest.ambienceSounds.find((s: { name: string, url: string }) => s.name.includes('chime'))?.url || '')
   }
 ];
 
-export const ambienceSounds = assetManifest.ambienceSounds.map((s: any) => ({
+export const ambienceSounds = assetManifest.ambienceSounds.map((s: { id: string, name: string, url: string }) => ({
   ...s,
   url: getUrl(s.url)
 }));

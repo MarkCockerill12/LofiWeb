@@ -103,3 +103,13 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
 }
+
+@keyframes visualizer-idle {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.02); opacity: 1; }
+}
+
+.visualizer-idle {
+  animation: visualizer-idle 4s ease-in-out infinite;
+  will-change: transform, opacity;
+}

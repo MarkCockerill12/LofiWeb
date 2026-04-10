@@ -10,7 +10,7 @@ import { THEME_COLORS } from "@/lib/constants"
 import * as React from "react"
 
 // Simple native slider for volume
-function SimpleSlider({ value, max = 100, onChange, uiColors }: Readonly<{ value: number, max?: number, onChange: (val: number) => void, uiColors: any }>) {
+function SimpleSlider({ value, max = 100, onChange, uiColors }: Readonly<{ value: number, max?: number, onChange: (val: number) => void, uiColors: { bg: string, bgBase: string, text: string, textSecondary: string, border: string } }>) {
     const percentage = Math.min(100, Math.max(0, (value / max) * 100));
     
     return (
@@ -49,7 +49,7 @@ function SimpleSlider({ value, max = 100, onChange, uiColors }: Readonly<{ value
     )
 }
 
-function MusicSlider({ currentTime, duration, uiColors, onSeek }: Readonly<{ currentTime: number, duration: number, uiColors: any, onSeek: (val: number) => void }>) {
+function MusicSlider({ currentTime, duration, uiColors, onSeek }: Readonly<{ currentTime: number, duration: number, uiColors: { bg: string, bgBase: string, text: string, textSecondary: string, border: string }, onSeek: (val: number) => void }>) {
     const [dragValue, setDragValue] = React.useState<number | null>(null)
     const isSeekingRef = React.useRef(false)
     

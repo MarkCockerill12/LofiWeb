@@ -15,7 +15,8 @@ class AudioController {
 
     getAudioContext() {
         if (!this.audioContext) {
-            const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
             if (AudioContextClass) {
                 this.audioContext = new AudioContextClass();
             }
@@ -67,7 +68,8 @@ class AudioController {
 
     getFrequencyData(array: Uint8Array) {
         if (this.analyser) {
-            this.analyser.getByteFrequencyData(array as any);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (this.analyser as any).getByteFrequencyData(array);
         }
     }
 
