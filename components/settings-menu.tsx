@@ -162,26 +162,38 @@ export function SettingsMenu() {
                 <TabsList
                   className="grid w-full grid-cols-3"
                   style={{
-                    backgroundColor: "#050505",
+                    backgroundColor: uiColors.bgBase === "#ffffff" ? "rgba(0, 0, 0, 0.05)" : "#050505",
                   }}
                 >
                   <TabsTrigger 
                     value="vibe" 
-                    className="data-[state=active]:bg-white/20 dark:data-[state=active]:bg-white/10 hover:bg-white/10 transition-colors"
+                    className={`transition-colors duration-200 ${
+                      uiColors.bgBase === "#ffffff"
+                        ? "data-[state=active]:bg-black/10 hover:bg-black/5"
+                        : "data-[state=active]:bg-white/25 dark:data-[state=active]:bg-white/10 hover:bg-white/10"
+                    }`}
                     style={{ color: uiColors.text }}
                   >
                     Vibe
                   </TabsTrigger>
                   <TabsTrigger 
                     value="timer" 
-                    className="data-[state=active]:bg-white/20 dark:data-[state=active]:bg-white/10 hover:bg-white/10 transition-colors"
+                    className={`transition-colors duration-200 ${
+                      uiColors.bgBase === "#ffffff"
+                        ? "data-[state=active]:bg-black/10 hover:bg-black/5"
+                        : "data-[state=active]:bg-white/25 dark:data-[state=active]:bg-white/10 hover:bg-white/10"
+                    }`}
                     style={{ color: uiColors.text }}
                   >
                     Timer
                   </TabsTrigger>
                   <TabsTrigger 
                     value="appearance" 
-                    className="data-[state=active]:bg-white/20 dark:data-[state=active]:bg-white/10 hover:bg-white/10 transition-colors"
+                    className={`transition-colors duration-200 ${
+                      uiColors.bgBase === "#ffffff"
+                        ? "data-[state=active]:bg-black/10 hover:bg-black/5"
+                        : "data-[state=active]:bg-white/25 dark:data-[state=active]:bg-white/10 hover:bg-white/10"
+                    }`}
                     style={{ color: uiColors.text }}
                   >
                     Style

@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/media/:path*',
+        destination: 'https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

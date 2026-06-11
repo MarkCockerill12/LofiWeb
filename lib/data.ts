@@ -23,14 +23,10 @@ export interface SoundEffect {
 }
 
 // Export data directly from the generated manifest
-const isDev = process.env.NODE_ENV === 'development';
 const R2_BASE = "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station";
 
 function getUrl(url: string) {
-  if (isDev) {
-    return url.replace(R2_BASE, '/media');
-  }
-  return url;
+  return url.replace(R2_BASE, '/media');
 }
 
 function inferCategory(path: string, type: 'bg' | 'music'): string {
