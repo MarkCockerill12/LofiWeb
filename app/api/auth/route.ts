@@ -4,7 +4,11 @@ import { NextResponse } from "next/server"
 export async function POST(request: Request) {
   try {
     const { password } = await request.json()
-    const expectedPassword = process.env.ADMIN_PASSWORD || "hypernova"
+    const expectedPassword = process.env.ADMIN_PASSWORD
+
+    if (!expectedPassword) {
+      return NextResponse.json({ error: "Administration password is not configured on the server environment" }, { status: 500 })
+    }
 
     if (password === expectedPassword) {
       const cookieStore = await cookies()

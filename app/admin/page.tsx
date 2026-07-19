@@ -35,7 +35,6 @@ export default function AdminPage() {
 
   // Add Song Form States
   const [trackTitle, setTrackTitle] = useState("")
-  const [trackArtist, setTrackArtist] = useState("")
   const [trackCategory, setTrackCategory] = useState("Lofi")
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [uploadingTrack, setUploadingTrack] = useState(false)
@@ -148,7 +147,7 @@ export default function AdminPage() {
       const newTrack: MusicTrack = {
         id: `track-${Date.now()}`,
         title: trackTitle.trim(),
-        artist: trackArtist.trim(),
+        artist: "",
         url: r2Url,
         category: trackCategory.trim()
       }
@@ -172,7 +171,6 @@ export default function AdminPage() {
         
         // Reset form
         setTrackTitle("")
-        setTrackArtist("")
         setAudioFile(null)
         
         const confetti = (await import('canvas-confetti')).default
@@ -422,13 +420,6 @@ export default function AdminPage() {
                 Background Scenes
               </button>
             </div>
-            <Button 
-              variant="ghost" 
-              onClick={handleLogout}
-              className="text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2 border border-red-500/20 text-xs py-1 h-8"
-            >
-              <LogOut className="w-3.5 h-3.5" /> Logout
-            </Button>
           </div>
         )}
       </div>
@@ -496,17 +487,7 @@ export default function AdminPage() {
                         />
                       </div>
 
-                      <div className="space-y-1">
-                        <label className="text-xs text-slate-400 font-mono uppercase">Artist / Credit</label>
-                        <input
-                          type="text"
-                          value={trackArtist}
-                          onChange={(e) => setTrackArtist(e.target.value)}
-                          placeholder="e.g. Lofi Selection"
-                          className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500 font-sans"
-                          required
-                        />
-                      </div>
+
 
                       <div className="space-y-1">
                         <label className="text-xs text-slate-400 font-mono uppercase">Playlist Category</label>
@@ -577,8 +558,12 @@ export default function AdminPage() {
                         <div className="flex-1 min-w-0 pr-4">
                           <h4 className="text-sm font-semibold text-white truncate">{track.title}</h4>
                           <p className="text-xs text-slate-400 truncate flex items-center gap-2 mt-0.5">
-                            <span>{track.artist}</span>
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                            {track.artist && (
+                              <>
+                                <span>{track.artist}</span>
+                                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                              </>
+                            )}
                             <span className="px-1.5 py-0.5 bg-white/5 rounded text-[10px] uppercase font-mono">{track.category || 'Other'}</span>
                           </p>
                         </div>

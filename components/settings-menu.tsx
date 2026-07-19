@@ -823,9 +823,11 @@ export function SettingsMenu() {
                                     {track.title}
                                   </p>
                                   <div className="flex items-center gap-2">
-                                      <p className="text-xs" style={{ color: uiColors.textSecondary }}>
-                                        {track.artist}
-                                      </p>
+                                      {track.artist && (
+                                        <p className="text-xs" style={{ color: uiColors.textSecondary }}>
+                                          {track.artist}
+                                        </p>
+                                      )}
                                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10" style={{ color: uiColors.textSecondary }}>
                                           {track.category}
                                       </span>

@@ -278,9 +278,11 @@ export function ControlBar() {
                   <p className="text-base font-bold truncate px-2" style={{ color: uiColors.text }}>
                     {currentTrack?.title || "No Track"}
                   </p>
-                  <p className="text-sm truncate px-2" style={{ color: uiColors.textSecondary }}>
-                    {currentTrack?.artist || "Select a track"}
-                  </p>
+                  {currentTrack?.artist && (
+                    <p className="text-sm truncate px-2" style={{ color: uiColors.textSecondary }}>
+                      {currentTrack.artist}
+                    </p>
+                  )}
                 </div>
                 
                 {/* Playlist Selector */}
