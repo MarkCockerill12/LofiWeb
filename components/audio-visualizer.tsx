@@ -332,13 +332,25 @@ function AudioVisualizerCanvas() {
       }
     };
 
+    const handleVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationId);
+      } else {
+        if (playingRef.current || !isIdle) {
+          animationId = requestAnimationFrame(render);
+        }
+      }
+    };
+
     renderRef.current = render;
     window.addEventListener("resize", resize);
+    document.addEventListener("visibilitychange", handleVisibility);
     resize();
     render(performance.now());
 
     return () => {
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", handleVisibility);
       cancelAnimationFrame(animationId);
     };
   }, [visualizerStyle, isIdle]);

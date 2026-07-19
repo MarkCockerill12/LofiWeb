@@ -20,6 +20,37 @@ export function BackgroundLayer() {
 
   // Handle Scene Changes with Crossfade
   useEffect(() => {
+    const handleVisibility = () => {
+      const v1 = video1Ref.current
+      const v2 = video2Ref.current
+      if (document.hidden) {
+        if (v1 && !v1.paused) {
+          v1.pause()
+          v1.dataset.wasPlaying = "true"
+        }
+        if (v2 && !v2.paused) {
+          v2.pause()
+          v2.dataset.wasPlaying = "true"
+        }
+      } else {
+        if (v1 && v1.dataset.wasPlaying === "true") {
+          v1.play().catch(() => {})
+          delete v1.dataset.wasPlaying
+        }
+        if (v2 && v2.dataset.wasPlaying === "true") {
+          v2.play().catch(() => {})
+          delete v2.dataset.wasPlaying
+        }
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility)
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!scene || isTransitioning) return
 
     // Identify which player is active and which is next
