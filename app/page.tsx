@@ -19,6 +19,19 @@ import confetti from "canvas-confetti"
 import { audioController } from "@/lib/audio-controller"
 
 export default function Page() {
+  const setStationData = useAppStore((state) => state.setStationData)
+  
+  useEffect(() => {
+    fetch("/api/station")
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((data) => {
+        if (data.musicTracks && data.backgroundScenes && data.ambienceSounds) {
+          setStationData(data)
+        }
+      })
+      .catch((err) => console.warn("Using offline fallback music catalog:", err))
+  }, [setStationData])
+
   const isPlaying = useAppStore((state) => state.isPlaying)
   const setIsPlaying = useAppStore((state) => state.setIsPlaying)
   const timeLeft = useAppStore((state) => state.timeLeft)

@@ -1,12 +1,12 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { backgroundScenes } from "@/lib/data"
 import { useEffect, useState, useRef } from "react"
 
 const CROSSFADE_DURATION = 1.5 // seconds
 
 export function BackgroundLayer() {
+  const backgroundScenes = useAppStore((state) => state.backgroundScenes)
   const currentSceneId = useAppStore((state) => state.currentSceneId)
   
   const [activePlayer, setActivePlayer] = useState<1 | 2>(1)

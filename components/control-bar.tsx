@@ -5,7 +5,7 @@ import { RotateCcw, CheckSquare, Volume2, Settings, Play, Pause, SkipForward, Sk
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getUIColors } from "@/lib/utils"
-import { musicTracks, SCENE_COLORS } from "@/lib/data"
+import { SCENE_COLORS } from "@/lib/data"
 import { THEME_COLORS } from "@/lib/constants"
 import * as React from "react"
 
@@ -141,6 +141,7 @@ function MusicSlider({ currentTime, duration, uiColors, onSeek }: Readonly<{ cur
 
 
 export function ControlBar() {
+  const musicTracks = useAppStore((state) => state.musicTracks)
   const resetTimer = useAppStore((state) => state.resetTimer)
   const toggleTodos = useAppStore((state) => state.toggleTodos)
   const toggleSettings = useAppStore((state) => state.toggleSettings)

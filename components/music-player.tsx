@@ -1,13 +1,13 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { musicTracks } from "@/lib/data"
 import { useEffect, useRef, useState, useMemo } from "react"
 import { audioController } from "@/lib/audio-controller" // Import controller
 
 const CROSSFADE_DURATION = 3 // seconds
 
 export function MusicPlayer() {
+  const musicTracks = useAppStore((state) => state.musicTracks)
   const currentTrackId = useAppStore((state) => state.currentTrackId)
   const volume = useAppStore((state) => state.preferences.volume)
   const isPlaying = useAppStore((state) => state.musicPlaying) // Use musicPlaying state

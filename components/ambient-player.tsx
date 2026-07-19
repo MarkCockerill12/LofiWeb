@@ -1,7 +1,6 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { ambienceSounds } from "@/lib/data"
 import { useEffect, useRef, useState } from "react"
 
 const CROSSFADE = 2; // seconds
@@ -122,6 +121,7 @@ function SeamlessLoop({ url, volume, active }: { url: string, volume: number, ac
 }
 
 export function AmbientPlayer() {
+  const ambienceSounds = useAppStore((state) => state.ambienceSounds)
   const ambientState = useAppStore((state) => state.ambientSounds)
   const volume = useAppStore((state) => state.preferences.ambientVolume)
   

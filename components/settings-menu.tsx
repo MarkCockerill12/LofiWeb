@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { backgroundScenes, musicTracks, SCENE_COLORS } from "@/lib/data"
+import { SCENE_COLORS } from "@/lib/data"
 import { THEME_COLORS } from "@/lib/constants"
 import type { ThemeColor, ThemeVariant } from "@/lib/store"
 import { useState, useRef } from "react"
@@ -45,6 +45,8 @@ function SimpleSlider({ value, max = 100, min = 0, onChange, uiColors }: { value
 
 
 export function SettingsMenu() {
+  const musicTracks = useAppStore((state) => state.musicTracks)
+  const backgroundScenes = useAppStore((state) => state.backgroundScenes)
   const showSettings = useAppStore((state) => state.showSettings)
   const toggleSettings = useAppStore((state) => state.toggleSettings)
   const preferences = useAppStore((state) => state.preferences)

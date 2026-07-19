@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import { THEME_COLORS } from "./constants"
+import { MusicTrack, BackgroundScene, SoundEffect, musicTracks, backgroundScenes, ambienceSounds } from "./data"
 
 export type TimerMode = "focus" | "break"
 export type ThemeColor = keyof typeof THEME_COLORS
@@ -82,7 +83,13 @@ interface AppState {
   // Preferences
   preferences: Preferences
 
+  // Dynamic Station Data
+  musicTracks: MusicTrack[]
+  backgroundScenes: BackgroundScene[]
+  ambienceSounds: SoundEffect[]
+
   // Actions
+  setStationData: (data: { musicTracks: MusicTrack[], backgroundScenes: BackgroundScene[], ambienceSounds: SoundEffect[] }) => void
   setTimerInteraction: (state: "none" | "hover" | "press") => void
   setIsPlaying: (playing: boolean) => void
   setTimerMode: (mode: TimerMode) => void
@@ -169,6 +176,15 @@ export const useAppStore = create<AppState>()(
         showTimer: true,
         clockStyle: "default",
       },
+
+      musicTracks: musicTracks,
+      backgroundScenes: backgroundScenes,
+      ambienceSounds: ambienceSounds,
+      setStationData: (data) => set({
+        musicTracks: data.musicTracks,
+        backgroundScenes: data.backgroundScenes,
+        ambienceSounds: data.ambienceSounds
+      }),
 
       // Actions
       setTimerInteraction: (interaction) => set({ timerInteraction: interaction }),

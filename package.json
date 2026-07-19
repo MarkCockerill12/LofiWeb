@@ -10,6 +10,7 @@
         "gen:assets": "node scripts/generate-assets.mjs"
     },
     "dependencies": {
+        "@aws-sdk/client-s3": "^3.1090.0",
         "@hookform/resolvers": "^3.10.0",
         "@radix-ui/react-accordion": "1.2.2",
         "@radix-ui/react-alert-dialog": "1.1.4",
@@ -49,6 +50,7 @@
         "cmdk": "1.0.4",
         "date-fns": "4.1.0",
         "embla-carousel-react": "8.5.1",
+        "framer-motion": "^12.42.2",
         "input-otp": "1.4.1",
         "lucide-react": "^0.454.0",
         "next": "15.5.15",
@@ -59,6 +61,7 @@
         "react-hook-form": "^7.60.0",
         "react-resizable-panels": "^2.1.7",
         "recharts": "2.15.4",
+        "sharp": "^0.35.3",
         "sonner": "^1.7.4",
         "styled-jsx": "^5.1.7",
         "tailwind-merge": "^3.3.1",
