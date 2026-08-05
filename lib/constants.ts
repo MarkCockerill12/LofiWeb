@@ -20,22 +20,29 @@ export const VISUALIZER_COLORS = {
   black: "#000000",
 } as const;
 
-/**
- * Public origin serving every media asset. Browsers fetch these directly so no
- * media or manifest bytes pass through the app host. Point NEXT_PUBLIC_R2_URL at a
- * custom domain mapped to the R2 bucket: it avoids networks that block *.r2.dev
- * and lets you control the CORS headers the visualiser and ambience need.
- */
+/** Origin of the R2 bucket holding every media asset. */
 export const R2_PUBLIC_BASE =
   process.env.NEXT_PUBLIC_R2_URL ??
   "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station";
 
-/** Legacy forms that may still appear inside a stored manifest. */
+/** Legacy hardcoded base that may still appear inside a stored manifest. */
 export const LEGACY_R2_BASE = "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station";
-export const LEGACY_MEDIA_PREFIX = "/media";
 
-/** Manifest object, read straight from the public bucket by the browser. */
-export const MANIFEST_URL = `${R2_PUBLIC_BASE}/asset-manifest.json`;
+/**
+ * Same-origin prefix that next.config rewrites to R2_PUBLIC_BASE.
+ *
+ * Media is deliberately proxied rather than loaded straight from the bucket: some
+ * school and corporate networks block *.r2.dev outright, which is what the June
+ * 2026 "fix cors" change was for. Serving from our own origin also sidesteps CORS
+ * for the Web Audio visualiser and the decoded ambience buffers.
+ *
+ * The manifest is the exception — it is fetched client-side from the bucket, so a
+ * normal page load costs no server function invocation.
+ */
+export const MEDIA_PREFIX = "/media";
+
+/** Manifest object, read by the browser through the same-origin media proxy. */
+export const MANIFEST_URL = `${MEDIA_PREFIX}/asset-manifest.json`;
 
 export interface TimerPreset {
   id: string;

@@ -1,14 +1,24 @@
 import type { NextConfig } from "next"
+import { MEDIA_PREFIX, R2_PUBLIC_BASE } from "./lib/constants"
 
 /**
- * Deliberately minimal. Media and the station manifest are fetched by the browser
- * straight from the public R2 bucket (see NEXT_PUBLIC_R2_URL), so there is no
- * rewrite proxying asset bytes through the app host and eating its bandwidth.
+ * Media is proxied from our own origin rather than loaded straight from R2.
+ * Some school and corporate networks block *.r2.dev outright, and serving
+ * same-origin also avoids CORS entirely for the Web Audio visualiser and the
+ * decoded ambience buffers.
  *
- * That does mean the bucket must send permissive CORS headers — the visualiser
- * reads audio via the Web Audio API and ambience is decoded from fetched buffers.
- * The required policy is documented in .env.example.
+ * This is an edge rewrite, not a serverless function: a page load still costs
+ * zero function invocations.
  */
-const nextConfig: NextConfig = {}
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: `${MEDIA_PREFIX}/:path*`,
+        destination: `${R2_PUBLIC_BASE}/:path*`,
+      },
+    ]
+  },
+}
 
 export default nextConfig

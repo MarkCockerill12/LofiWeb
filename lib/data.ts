@@ -1,23 +1,20 @@
 import assetManifest from "./asset-manifest.json"
-import { LEGACY_MEDIA_PREFIX, LEGACY_R2_BASE, R2_PUBLIC_BASE } from "./constants"
+import { LEGACY_R2_BASE, MEDIA_PREFIX, R2_PUBLIC_BASE } from "./constants"
 import type { BackgroundScene, MusicTrack, SoundEffect } from "./types"
 
 export type { BackgroundScene, MusicTrack, SoundEffect }
 
 /**
- * Normalises any stored URL onto the configured public base, so the browser always
- * fetches media straight from the bucket. Handles both the old same-origin /media
- * proxy paths and hardcoded pub-*.r2.dev URLs left in older manifests.
+ * Rewrites a stored asset URL onto the same-origin /media proxy. Handles both the
+ * configured base and the older hardcoded pub-*.r2.dev URLs, so a manifest written
+ * before NEXT_PUBLIC_R2_URL existed still resolves.
  */
 export function toAssetUrl(url: string): string {
   if (!url) return url
+  if (url.startsWith(MEDIA_PREFIX + "/")) return url
 
-  if (url.startsWith(LEGACY_MEDIA_PREFIX + "/")) {
-    return R2_PUBLIC_BASE + url.slice(LEGACY_MEDIA_PREFIX.length)
-  }
-
-  if (url.startsWith(LEGACY_R2_BASE)) {
-    return R2_PUBLIC_BASE + url.slice(LEGACY_R2_BASE.length)
+  for (const base of [R2_PUBLIC_BASE, LEGACY_R2_BASE]) {
+    if (url.startsWith(base)) return MEDIA_PREFIX + url.slice(base.length)
   }
 
   return url
