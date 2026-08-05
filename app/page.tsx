@@ -13,6 +13,8 @@ const SettingsMenu = dynamic(() => import("@/components/settings-menu").then(mod
 const CookiePopup = dynamic(() => import("@/components/cookie-popup").then(mod => mod.CookiePopup), { ssr: false })
 import { AudioVisualizer } from "@/components/audio-visualizer"
 import { useAppStore } from "@/lib/store"
+import { MANIFEST_URL } from "@/lib/constants"
+import { normalizeManifest } from "@/lib/data"
 import { useWorkerTimer } from "@/hooks/use-worker-timer"
 import { useEffect, useRef, useCallback, useState } from "react"
 import confetti from "canvas-confetti"
@@ -20,13 +22,16 @@ import { audioController } from "@/lib/audio-controller"
 
 export default function Page() {
   const setStationData = useAppStore((state) => state.setStationData)
-  
+
+  // Read the catalog straight from the public bucket. Nothing about a normal visit
+  // touches a server function; if the bucket is unreachable the bundled seed
+  // manifest already in the store stays in place.
   useEffect(() => {
-    fetch("/api/station")
-      .then((res) => res.ok ? res.json() : Promise.reject())
+    fetch(MANIFEST_URL)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((data) => {
         if (data.musicTracks && data.backgroundScenes && data.ambienceSounds) {
-          setStationData(data)
+          setStationData(normalizeManifest(data))
         }
       })
       .catch((err) => console.warn("Using offline fallback music catalog:", err))

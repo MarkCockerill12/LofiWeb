@@ -1,12 +1,26 @@
 import assetManifest from "./asset-manifest.json"
-import { MEDIA_PREFIX, R2_PUBLIC_BASE } from "./constants"
+import { LEGACY_MEDIA_PREFIX, LEGACY_R2_BASE, R2_PUBLIC_BASE } from "./constants"
 import type { BackgroundScene, MusicTrack, SoundEffect } from "./types"
 
 export type { BackgroundScene, MusicTrack, SoundEffect }
 
-/** Rewrites absolute R2 URLs onto the same-origin /media proxy. */
-function toMediaUrl(url: string): string {
-  return url.replace(R2_PUBLIC_BASE, MEDIA_PREFIX)
+/**
+ * Normalises any stored URL onto the configured public base, so the browser always
+ * fetches media straight from the bucket. Handles both the old same-origin /media
+ * proxy paths and hardcoded pub-*.r2.dev URLs left in older manifests.
+ */
+export function toAssetUrl(url: string): string {
+  if (!url) return url
+
+  if (url.startsWith(LEGACY_MEDIA_PREFIX + "/")) {
+    return R2_PUBLIC_BASE + url.slice(LEGACY_MEDIA_PREFIX.length)
+  }
+
+  if (url.startsWith(LEGACY_R2_BASE)) {
+    return R2_PUBLIC_BASE + url.slice(LEGACY_R2_BASE.length)
+  }
+
+  return url
 }
 
 const KEYWORD_CATEGORIES: Record<"bg" | "music", [RegExp, string][]> = {
@@ -45,23 +59,49 @@ function inferCategory(path: string, type: "bg" | "music"): string {
 
 export const musicTracks: MusicTrack[] = assetManifest.musicTracks.map((t: MusicTrack) => ({
   ...t,
-  url: toMediaUrl(t.url),
+  url: toAssetUrl(t.url),
   category: t.category || inferCategory(t.url, "music"),
 }))
 
 export const backgroundScenes: BackgroundScene[] = assetManifest.backgroundScenes.map(
   (s: BackgroundScene) => ({
     ...s,
-    videoUrl: toMediaUrl(s.videoUrl),
-    thumbnailUrl: toMediaUrl(s.thumbnailUrl),
+    videoUrl: toAssetUrl(s.videoUrl),
+    thumbnailUrl: toAssetUrl(s.thumbnailUrl),
     category: s.category || inferCategory(s.videoUrl, "bg"),
   }),
 )
 
 export const ambienceSounds: SoundEffect[] = assetManifest.ambienceSounds.map((s: SoundEffect) => ({
   ...s,
-  url: toMediaUrl(s.url),
+  url: toAssetUrl(s.url),
 }))
+
+/**
+ * Applies the same URL and category normalisation to a manifest fetched at runtime
+ * as the bundled seed gets at build time. Previously live data skipped this, so
+ * fetched entries kept whatever URL form the manifest happened to hold.
+ */
+export function normalizeManifest(raw: {
+  musicTracks: MusicTrack[]
+  backgroundScenes: BackgroundScene[]
+  ambienceSounds: SoundEffect[]
+}) {
+  return {
+    musicTracks: raw.musicTracks.map((t) => ({
+      ...t,
+      url: toAssetUrl(t.url),
+      category: t.category || inferCategory(t.url, "music"),
+    })),
+    backgroundScenes: raw.backgroundScenes.map((s) => ({
+      ...s,
+      videoUrl: toAssetUrl(s.videoUrl),
+      thumbnailUrl: toAssetUrl(s.thumbnailUrl),
+      category: s.category || inferCategory(s.videoUrl, "bg"),
+    })),
+    ambienceSounds: raw.ambienceSounds.map((s) => ({ ...s, url: toAssetUrl(s.url) })),
+  }
+}
 
 export const SCENE_COLORS: Record<string, string> = {
   "scene-0": "#ec4899", // Sakura -> Pink

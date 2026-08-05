@@ -1,5 +1,6 @@
 import { AwsClient } from "aws4fetch"
 import seedManifest from "./asset-manifest.json"
+import { R2_PUBLIC_BASE } from "./constants"
 import type { MusicTrack, BackgroundScene, SoundEffect } from "./types"
 
 export interface StationManifest {
@@ -10,9 +11,16 @@ export interface StationManifest {
 
 const R2_ENDPOINT = process.env.R2_ENDPOINT
 export const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME
-export const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL
 
 const MANIFEST_KEY = "lofi-station/asset-manifest.json"
+
+/**
+ * Builds the browser-facing URL for an object key. R2_PUBLIC_BASE already ends in
+ * the `lofi-station` prefix that keys also carry, so strip it to avoid doubling.
+ */
+export function publicUrlForKey(key: string): string {
+  return `${R2_PUBLIC_BASE}/${key.replace(/^lofi-station\//, "")}`
+}
 
 /**
  * R2 speaks the S3 API, so all this needs is SigV4 request signing — aws4fetch does

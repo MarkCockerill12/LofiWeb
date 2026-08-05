@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { putObject, R2_PUBLIC_URL } from "@/lib/r2"
+import { putObject, publicUrlForKey } from "@/lib/r2"
 import { isAuthenticated } from "@/lib/auth"
 
 /**
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to upload file to R2" }, { status: 502 })
     }
 
-    return NextResponse.json({ success: true, url: `${R2_PUBLIC_URL}/${key}` })
+    return NextResponse.json({ success: true, url: publicUrlForKey(key) })
   } catch (error) {
     console.error("R2 Upload Error:", error)
     const message = error instanceof Error ? error.message : "Failed to upload file to R2"

@@ -1,28 +1,14 @@
 import type { NextConfig } from "next"
-import { MEDIA_PREFIX, R2_PUBLIC_BASE } from "./lib/constants"
 
-const r2Origin = new URL(R2_PUBLIC_BASE)
-
-const nextConfig: NextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: r2Origin.protocol.replace(":", "") as "https" | "http",
-        hostname: r2Origin.hostname,
-        port: "",
-        pathname: "/**",
-      },
-    ],
-  },
-  async rewrites() {
-    return [
-      {
-        // Same-origin proxy: dodges CORS and firewalls that block *.r2.dev.
-        source: `${MEDIA_PREFIX}/:path*`,
-        destination: `${R2_PUBLIC_BASE}/:path*`,
-      },
-    ]
-  },
-}
+/**
+ * Deliberately minimal. Media and the station manifest are fetched by the browser
+ * straight from the public R2 bucket (see NEXT_PUBLIC_R2_URL), so there is no
+ * rewrite proxying asset bytes through the app host and eating its bandwidth.
+ *
+ * That does mean the bucket must send permissive CORS headers — the visualiser
+ * reads audio via the Web Audio API and ambience is decoded from fetched buffers.
+ * The required policy is documented in .env.example.
+ */
+const nextConfig: NextConfig = {}
 
 export default nextConfig

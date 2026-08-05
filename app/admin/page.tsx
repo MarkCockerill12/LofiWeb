@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Plus, Trash2, Music, Check, Film, Upload, Video } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReorderableList } from './reorderable-list'
+import { MANIFEST_URL } from '@/lib/constants'
 import type { BackgroundScene, MusicTrack } from '@/lib/types'
 import type { StationManifest } from '@/lib/r2'
 
@@ -37,8 +38,9 @@ export default function AdminPage() {
 
   const loadStationData = useCallback(async () => {
     try {
-      // Always read the authoritative copy; the public route is CDN-cached.
-      const res = await fetch("/api/station", { cache: "no-store" })
+      // Read the manifest straight from the bucket, same as the public site.
+      // It is stored with Cache-Control: no-cache, so this is always authoritative.
+      const res = await fetch(MANIFEST_URL, { cache: "no-store" })
       if (res.ok) {
         const data: StationManifest = await res.json()
         setManifest(data)

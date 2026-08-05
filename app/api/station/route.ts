@@ -1,25 +1,11 @@
 import { NextResponse } from "next/server"
-import { getStationManifest, saveStationManifest, type StationManifest } from "@/lib/r2"
+import { saveStationManifest, type StationManifest } from "@/lib/r2"
 import { isAuthenticated } from "@/lib/auth"
 
 /**
- * Read fresh from R2 per request, but let the CDN absorb bursts for a minute.
- * Kept short so an admin edit shows up on the public site promptly; the admin
- * console itself fetches with `cache: "no-store"` to bypass this entirely.
+ * Write-only. Reads are served straight from the public bucket to the browser, so
+ * a normal visit never invokes this function — only an admin save does.
  */
-export const dynamic = "force-dynamic"
-
-export async function GET() {
-  try {
-    const manifest = await getStationManifest()
-    return NextResponse.json(manifest, {
-      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=600" },
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to fetch station manifest"
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
 
 function isValidManifest(value: unknown): value is StationManifest {
   if (!value || typeof value !== "object") return false

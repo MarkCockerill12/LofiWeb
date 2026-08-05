@@ -20,13 +20,22 @@ export const VISUALIZER_COLORS = {
   black: "#000000",
 } as const;
 
-/** Public R2 origin holding every media asset, proxied same-origin via /media. */
+/**
+ * Public origin serving every media asset. Browsers fetch these directly so no
+ * media or manifest bytes pass through the app host. Point NEXT_PUBLIC_R2_URL at a
+ * custom domain mapped to the R2 bucket: it avoids networks that block *.r2.dev
+ * and lets you control the CORS headers the visualiser and ambience need.
+ */
 export const R2_PUBLIC_BASE =
   process.env.NEXT_PUBLIC_R2_URL ??
   "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station";
 
-/** Same-origin prefix that next.config rewrites to R2_PUBLIC_BASE. */
-export const MEDIA_PREFIX = "/media";
+/** Legacy forms that may still appear inside a stored manifest. */
+export const LEGACY_R2_BASE = "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station";
+export const LEGACY_MEDIA_PREFIX = "/media";
+
+/** Manifest object, read straight from the public bucket by the browser. */
+export const MANIFEST_URL = `${R2_PUBLIC_BASE}/asset-manifest.json`;
 
 export interface TimerPreset {
   id: string;
