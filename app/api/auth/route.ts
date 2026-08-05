@@ -1,43 +1,62 @@
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
+import {
+  SESSION_COOKIE,
+  SESSION_COOKIE_OPTIONS,
+  clearRateLimit,
+  clientKey,
+  createSessionToken,
+  isAuthenticated,
+  rateLimit,
+  safeEqual,
+} from "@/lib/auth"
 
 export async function POST(request: Request) {
+  const key = clientKey(request)
+  const { allowed, retryAfter } = rateLimit(key)
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many attempts. Try again later." },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } },
+    )
+  }
+
   try {
     const { password } = await request.json()
     const expectedPassword = process.env.ADMIN_PASSWORD
 
     if (!expectedPassword) {
-      return NextResponse.json({ error: "Administration password is not configured on the server environment" }, { status: 500 })
+      return NextResponse.json(
+        { error: "Administration password is not configured on the server environment" },
+        { status: 500 },
+      )
     }
 
-    if (password === expectedPassword) {
-      const cookieStore = await cookies()
-      cookieStore.set("admin_session", "authenticated", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-        path: "/",
-      })
-
-      return NextResponse.json({ success: true })
+    if (typeof password !== "string" || !safeEqual(password, expectedPassword)) {
+      return NextResponse.json({ error: "Incorrect password" }, { status: 401 })
     }
 
-    return NextResponse.json({ error: "Incorrect password" }, { status: 401 })
-  } catch (error) {
+    const token = createSessionToken()
+    if (!token) {
+      return NextResponse.json({ error: "Session signing is unavailable" }, { status: 500 })
+    }
+
+    const cookieStore = await cookies()
+    cookieStore.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS)
+    clearRateLimit(key)
+
+    return NextResponse.json({ success: true })
+  } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
 }
 
 export async function GET() {
-  const cookieStore = await cookies()
-  const session = cookieStore.get("admin_session")?.value
-  const authenticated = session === "authenticated"
-  return NextResponse.json({ authenticated })
+  return NextResponse.json({ authenticated: await isAuthenticated() })
 }
 
 export async function DELETE() {
   const cookieStore = await cookies()
-  cookieStore.delete("admin_session")
+  cookieStore.delete(SESSION_COOKIE)
   return NextResponse.json({ success: true })
 }

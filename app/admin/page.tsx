@@ -1,36 +1,23 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, LogOut, Plus, Trash2, Music, Check, Film, Upload, Video } from 'lucide-react'
+import { Lock, Plus, Trash2, Music, Check, Film, Upload, Video } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-interface MusicTrack {
-  id: string
-  title: string
-  artist: string
-  url: string
-  category?: string
-}
-
-interface BackgroundScene {
-  id: string
-  name: string
-  videoUrl: string
-  thumbnailUrl: string
-  category?: string
-}
+import { ReorderableList } from './reorderable-list'
+import type { BackgroundScene, MusicTrack } from '@/lib/types'
+import type { StationManifest } from '@/lib/r2'
 
 export default function AdminPage() {
   const [password, setPassword] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [error, setError] = useState("")
   const [activeTab, setActiveTab] = useState<'tracks' | 'scenes'>('tracks')
-  
+
   // Station Data States
   const [tracks, setTracks] = useState<MusicTrack[]>([])
   const [scenes, setScenes] = useState<BackgroundScene[]>([])
-  const [manifest, setManifest] = useState<any>(null)
+  const [manifest, setManifest] = useState<StationManifest | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Add Song Form States
@@ -38,7 +25,7 @@ export default function AdminPage() {
   const [trackCategory, setTrackCategory] = useState("Lofi")
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [uploadingTrack, setUploadingTrack] = useState(false)
-  
+
   // Add Scene Form States
   const [sceneName, setSceneName] = useState("")
   const [sceneCategory, setSceneCategory] = useState("Cozy")
@@ -46,29 +33,14 @@ export default function AdminPage() {
   const [uploadingScene, setUploadingScene] = useState(false)
 
   const [successMsg, setSuccessMsg] = useState("")
+  const [savingOrder, setSavingOrder] = useState(false)
 
-  const checkAuth = async () => {
+  const loadStationData = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth")
+      // Always read the authoritative copy; the public route is CDN-cached.
+      const res = await fetch("/api/station", { cache: "no-store" })
       if (res.ok) {
-        const data = await res.json()
-        setIsAuthenticated(data.authenticated)
-        if (data.authenticated) {
-          loadStationData()
-        }
-      }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadStationData = async () => {
-    try {
-      const res = await fetch("/api/station")
-      if (res.ok) {
-        const data = await res.json()
+        const data: StationManifest = await res.json()
         setManifest(data)
         setTracks(data.musicTracks || [])
         setScenes(data.backgroundScenes || [])
@@ -76,11 +48,42 @@ export default function AdminPage() {
     } catch (err) {
       console.error(err)
     }
-  }
+  }, [])
 
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/auth")
+        if (res.ok) {
+          const data = await res.json()
+          setIsAuthenticated(data.authenticated)
+          if (data.authenticated) await loadStationData()
+        }
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     checkAuth()
-  }, [])
+  }, [loadStationData])
+
+  /** Persists a manifest change to R2 and syncs local state on success. */
+  const saveManifest = async (updatedManifest: StationManifest): Promise<boolean> => {
+    const saveRes = await fetch("/api/station", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updatedManifest })
+    })
+
+    if (!saveRes.ok) return false
+
+    setManifest(updatedManifest)
+    setTracks(updatedManifest.musicTracks || [])
+    setScenes(updatedManifest.backgroundScenes || [])
+    return true
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,25 +97,13 @@ export default function AdminPage() {
 
       if (res.ok) {
         setIsAuthenticated(true)
-        loadStationData()
+        await loadStationData()
       } else {
         const data = await res.json()
         setError(data.error || "Incorrect password")
       }
-    } catch (err) {
+    } catch {
       setError("Failed to connect to authentication API")
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth", { method: "DELETE" })
-      setIsAuthenticated(false)
-      setTracks([])
-      setScenes([])
-      setManifest(null)
-    } catch (err) {
-      console.error(err)
     }
   }
 
@@ -129,11 +120,7 @@ export default function AdminPage() {
     formData.append("folder", `lofi-station/music/${trackCategory.trim()}`)
 
     try {
-      // 1. Upload audio file
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData
-      })
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData })
 
       if (!uploadRes.ok) {
         const errData = await uploadRes.json()
@@ -141,45 +128,29 @@ export default function AdminPage() {
       }
 
       const uploadData = await uploadRes.json()
-      const r2Url = uploadData.url
 
-      // 2. Append new track metadata
       const newTrack: MusicTrack = {
         id: `track-${Date.now()}`,
         title: trackTitle.trim(),
         artist: "",
-        url: r2Url,
+        url: uploadData.url,
         category: trackCategory.trim()
       }
 
-      const updatedManifest = {
-        ...manifest,
-        musicTracks: [...(manifest.musicTracks || []), newTrack]
-      }
+      const updated = { ...manifest, musicTracks: [...(manifest.musicTracks || []), newTrack] }
 
-      // 3. Save Updated Manifest
-      const saveRes = await fetch("/api/station", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updatedManifest })
-      })
-
-      if (saveRes.ok) {
-        setManifest(updatedManifest)
-        setTracks(updatedManifest.musicTracks)
+      if (await saveManifest(updated)) {
         setSuccessMsg(`"${trackTitle}" has been successfully added to the catalog!`)
-        
-        // Reset form
         setTrackTitle("")
         setAudioFile(null)
-        
+
         const confetti = (await import('canvas-confetti')).default
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
       } else {
         throw new Error("Failed to write database manifest update to R2")
       }
-    } catch (err: any) {
-      setError(err.message || "Operation failed")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Operation failed")
     } finally {
       setUploadingTrack(false)
     }
@@ -193,7 +164,7 @@ export default function AdminPage() {
       video.muted = true
       video.playsInline = true
       video.src = URL.createObjectURL(file)
-      
+
       video.onloadedmetadata = () => {
         // Cap video at 30 seconds
         if (video.duration > 30.5) {
@@ -216,7 +187,7 @@ export default function AdminPage() {
             return
           }
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-          
+
           canvas.toBlob(
             (blob) => {
               if (blob) {
@@ -230,7 +201,7 @@ export default function AdminPage() {
             0.8
           )
         } catch (err) {
-          reject(err)
+          reject(err instanceof Error ? err : new Error(String(err)))
         }
       }
 
@@ -250,7 +221,6 @@ export default function AdminPage() {
 
     try {
       // 1. Generate WebP thumbnail blob client-side
-      console.log("Validating video and generating WebP thumbnail...")
       const thumbBlob = await generateVideoThumbnail(videoFile)
       const thumbFile = new File([thumbBlob], "thumbnail.webp", { type: "image/webp" })
 
@@ -259,61 +229,38 @@ export default function AdminPage() {
       videoData.append("file", videoFile)
       videoData.append("folder", "lofi-station/backgrounds")
 
-      console.log("Uploading scene video file...")
-      const videoRes = await fetch("/api/upload", {
-        method: "POST",
-        body: videoData
-      })
+      const videoRes = await fetch("/api/upload", { method: "POST", body: videoData })
       if (!videoRes.ok) {
         const errData = await videoRes.json()
         throw new Error(errData.error || "Video upload failed")
       }
       const videoUpload = await videoRes.json()
-      const videoUrl = videoUpload.url
 
       // 3. Upload Thumbnail WebP
       const thumbData = new FormData()
       thumbData.append("file", thumbFile)
       thumbData.append("folder", "lofi-station/backgrounds/thumbnails")
 
-      console.log("Uploading WebP thumbnail...")
-      const thumbRes = await fetch("/api/upload", {
-        method: "POST",
-        body: thumbData
-      })
+      const thumbRes = await fetch("/api/upload", { method: "POST", body: thumbData })
       if (!thumbRes.ok) {
         const errData = await thumbRes.json()
         throw new Error(errData.error || "Thumbnail upload failed")
       }
       const thumbUpload = await thumbRes.json()
-      const thumbnailUrl = thumbUpload.url
 
       // 4. Save to Manifest
       const newScene: BackgroundScene = {
         id: `scene-${Date.now()}`,
         name: sceneName.trim(),
-        videoUrl,
-        thumbnailUrl,
+        videoUrl: videoUpload.url,
+        thumbnailUrl: thumbUpload.url,
         category: sceneCategory.trim()
       }
 
-      const updatedManifest = {
-        ...manifest,
-        backgroundScenes: [...(manifest.backgroundScenes || []), newScene]
-      }
+      const updated = { ...manifest, backgroundScenes: [...(manifest.backgroundScenes || []), newScene] }
 
-      const saveRes = await fetch("/api/station", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updatedManifest })
-      })
-
-      if (saveRes.ok) {
-        setManifest(updatedManifest)
-        setScenes(updatedManifest.backgroundScenes)
+      if (await saveManifest(updated)) {
         setSuccessMsg(`"${sceneName}" scene has been successfully added!`)
-        
-        // Reset form
         setSceneName("")
         setVideoFile(null)
 
@@ -322,67 +269,64 @@ export default function AdminPage() {
       } else {
         throw new Error("Failed to write database manifest update to R2")
       }
-    } catch (err: any) {
-      setError(err.message || "Operation failed")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Operation failed")
     } finally {
       setUploadingScene(false)
     }
   }
 
-  const handleDeleteSong = async (trackId: string, trackTitle: string) => {
-    if (!confirm(`Are you sure you want to delete "${trackTitle}" from the library?`)) return
+  const handleDeleteSong = async (trackId: string, title: string) => {
     if (!manifest) return
+    if (!confirm(`Are you sure you want to delete "${title}" from the library?`)) return
 
-    try {
-      const updatedManifest = {
-        ...manifest,
-        musicTracks: (manifest.musicTracks || []).filter((t: any) => t.id !== trackId)
-      }
-
-      const saveRes = await fetch("/api/station", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updatedManifest })
-      })
-
-      if (saveRes.ok) {
-        setManifest(updatedManifest)
-        setTracks(updatedManifest.musicTracks)
-      } else {
-        alert("Failed to delete song from R2 database manifest")
-      }
-    } catch (err) {
-      console.error(err)
-      alert("Error connection occurred")
+    const updated = {
+      ...manifest,
+      musicTracks: (manifest.musicTracks || []).filter((t) => t.id !== trackId)
     }
+
+    if (!(await saveManifest(updated))) alert("Failed to delete song from R2 database manifest")
   }
 
-  const handleDeleteScene = async (sceneId: string, sceneName: string) => {
-    if (!confirm(`Are you sure you want to delete scene "${sceneName}"?`)) return
+  const handleDeleteScene = async (sceneId: string, name: string) => {
+    if (!manifest) return
+    if (!confirm(`Are you sure you want to delete scene "${name}"?`)) return
+
+    const updated = {
+      ...manifest,
+      backgroundScenes: (manifest.backgroundScenes || []).filter((s) => s.id !== sceneId)
+    }
+
+    if (!(await saveManifest(updated))) alert("Failed to delete scene from R2 database manifest")
+  }
+
+  /** Persists a new catalog order; reverts the optimistic update if the save fails. */
+  const handleReorder = async (
+    key: 'musicTracks' | 'backgroundScenes',
+    next: MusicTrack[] | BackgroundScene[]
+  ) => {
     if (!manifest) return
 
-    try {
-      const updatedManifest = {
-        ...manifest,
-        backgroundScenes: (manifest.backgroundScenes || []).filter((s: any) => s.id !== sceneId)
-      }
+    const previousTracks = tracks
+    const previousScenes = scenes
 
-      const saveRes = await fetch("/api/station", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updatedManifest })
-      })
+    // Show the new order immediately.
+    if (key === 'musicTracks') setTracks(next as MusicTrack[])
+    else setScenes(next as BackgroundScene[])
 
-      if (saveRes.ok) {
-        setManifest(updatedManifest)
-        setScenes(updatedManifest.backgroundScenes)
-      } else {
-        alert("Failed to delete scene from R2 database manifest")
-      }
-    } catch (err) {
-      console.error(err)
-      alert("Error connection occurred")
+    setSavingOrder(true)
+    setError("")
+
+    const updated = { ...manifest, [key]: next } as StationManifest
+    const ok = await saveManifest(updated)
+
+    if (!ok) {
+      setTracks(previousTracks)
+      setScenes(previousScenes)
+      setError("Failed to save the new order to R2")
     }
+
+    setSavingOrder(false)
   }
 
   if (loading) {
@@ -395,7 +339,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-purple-950 to-slate-950 text-slate-100 p-6 flex flex-col items-center">
-      
+
       {/* Header */}
       <div className="w-full max-w-5xl flex justify-between items-center mb-6 pb-4 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -439,7 +383,7 @@ export default function AdminPage() {
               </div>
             </div>
             <h2 className="text-xl font-bold text-center mb-6 tracking-wide font-mono">ENTER ADMINISTRATIVE SYSTEM</h2>
-            
+
             <form onSubmit={handleLogin} className="space-y-4">
               <input
                 type="password"
@@ -487,8 +431,6 @@ export default function AdminPage() {
                         />
                       </div>
 
-
-
                       <div className="space-y-1">
                         <label className="text-xs text-slate-400 font-mono uppercase">Playlist Category</label>
                         <select
@@ -532,8 +474,8 @@ export default function AdminPage() {
                         </p>
                       )}
 
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         disabled={uploadingTrack}
                         className="w-full bg-cyan-500 hover:bg-cyan-600 active:scale-95 text-black font-semibold font-mono tracking-wider transition-all"
                       >
@@ -545,37 +487,42 @@ export default function AdminPage() {
 
                 {/* Tracks Catalog */}
                 <div className="lg:col-span-3 bg-black/60 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl flex flex-col h-[75vh]">
-                  <h2 className="text-lg font-bold font-mono tracking-wider mb-4 text-purple-400 flex items-center gap-2">
+                  <h2 className="text-lg font-bold font-mono tracking-wider mb-1 text-purple-400 flex items-center gap-2">
                     <Music className="w-5 h-5 animate-pulse" /> MUSIC CATALOG ({tracks.length} SONGS)
                   </h2>
+                  <p className="text-[10px] font-mono text-slate-500 mb-4">
+                    {savingOrder ? "SAVING ORDER..." : "DRAG THE HANDLE TO REORDER PLAYBACK"}
+                  </p>
 
-                  <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-                    {tracks.map((track) => (
-                      <div
-                        key={track.id}
-                        className="bg-slate-950/50 hover:bg-slate-900 border border-white/5 hover:border-white/10 p-3 rounded-lg flex items-center justify-between transition-all"
-                      >
-                        <div className="flex-1 min-w-0 pr-4">
-                          <h4 className="text-sm font-semibold text-white truncate">{track.title}</h4>
-                          <p className="text-xs text-slate-400 truncate flex items-center gap-2 mt-0.5">
-                            {track.artist && (
-                              <>
-                                <span>{track.artist}</span>
-                                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
-                              </>
-                            )}
-                            <span className="px-1.5 py-0.5 bg-white/5 rounded text-[10px] uppercase font-mono">{track.category || 'Other'}</span>
-                          </p>
+                  <div className="flex-1 overflow-y-auto pr-2">
+                    <ReorderableList
+                      items={tracks}
+                      getKey={(track) => track.id}
+                      onReorder={(next) => handleReorder('musicTracks', next)}
+                      renderItem={(track) => (
+                        <div className="bg-slate-950/50 hover:bg-slate-900 border border-white/5 hover:border-white/10 p-3 rounded-lg flex items-center justify-between transition-all">
+                          <div className="flex-1 min-w-0 pr-4">
+                            <h4 className="text-sm font-semibold text-white truncate">{track.title}</h4>
+                            <p className="text-xs text-slate-400 truncate flex items-center gap-2 mt-0.5">
+                              {track.artist && (
+                                <>
+                                  <span>{track.artist}</span>
+                                  <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                                </>
+                              )}
+                              <span className="px-1.5 py-0.5 bg-white/5 rounded text-[10px] uppercase font-mono">{track.category || 'Other'}</span>
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteSong(track.id, track.title)}
+                            className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Track"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleDeleteSong(track.id, track.title)}
-                          className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer"
-                          title="Delete Track"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                      )}
+                    />
                   </div>
                 </div>
               </>
@@ -646,8 +593,8 @@ export default function AdminPage() {
                         </p>
                       )}
 
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         disabled={uploadingScene}
                         className="w-full bg-cyan-500 hover:bg-cyan-600 active:scale-95 text-black font-semibold font-mono tracking-wider transition-all"
                       >
@@ -659,38 +606,49 @@ export default function AdminPage() {
 
                 {/* Scenes Catalog */}
                 <div className="lg:col-span-3 bg-black/60 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl flex flex-col h-[75vh]">
-                  <h2 className="text-lg font-bold font-mono tracking-wider mb-4 text-purple-400 flex items-center gap-2">
+                  <h2 className="text-lg font-bold font-mono tracking-wider mb-1 text-purple-400 flex items-center gap-2">
                     <Film className="w-5 h-5 animate-pulse" /> BACKGROUND SCENES ({scenes.length} SCENES)
                   </h2>
+                  <p className="text-[10px] font-mono text-slate-500 mb-4">
+                    {savingOrder ? "SAVING ORDER..." : "DRAG THE HANDLE TO REORDER"}
+                  </p>
 
-                  <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-                    {scenes.map((scene) => (
-                      <div
-                        key={scene.id}
-                        className="bg-slate-950/50 hover:bg-slate-900 border border-white/5 hover:border-white/10 p-3 rounded-xl flex items-center justify-between transition-all"
-                      >
-                        <div className="flex items-center gap-4 min-w-0 pr-4">
-                          <div className="relative w-20 aspect-video rounded-md overflow-hidden bg-slate-900 border border-white/5 shrink-0">
-                            {scene.thumbnailUrl && (
-                              <img src={scene.thumbnailUrl} alt={scene.name} className="w-full h-full object-cover" />
-                            )}
+                  <div className="flex-1 overflow-y-auto pr-2">
+                    <ReorderableList
+                      items={scenes}
+                      getKey={(scene) => scene.id}
+                      onReorder={(next) => handleReorder('backgroundScenes', next)}
+                      renderItem={(scene) => (
+                        <div className="bg-slate-950/50 hover:bg-slate-900 border border-white/5 hover:border-white/10 p-3 rounded-xl flex items-center justify-between transition-all">
+                          <div className="flex items-center gap-4 min-w-0 pr-4">
+                            <div className="relative w-20 aspect-video rounded-md overflow-hidden bg-slate-900 border border-white/5 shrink-0">
+                              {scene.thumbnailUrl && (
+                                <img
+                                  src={scene.thumbnailUrl}
+                                  alt={scene.name}
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-sm font-semibold text-white truncate">{scene.name}</h4>
+                              <p className="text-xs text-slate-400 truncate flex items-center gap-2 mt-0.5">
+                                <span className="px-1.5 py-0.5 bg-white/5 rounded text-[10px] uppercase font-mono">{scene.category || 'Other'}</span>
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <h4 className="text-sm font-semibold text-white truncate">{scene.name}</h4>
-                            <p className="text-xs text-slate-400 truncate flex items-center gap-2 mt-0.5">
-                              <span className="px-1.5 py-0.5 bg-white/5 rounded text-[10px] uppercase font-mono">{scene.category || 'Other'}</span>
-                            </p>
-                          </div>
+                          <button
+                            onClick={() => handleDeleteScene(scene.id, scene.name)}
+                            className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title="Delete Scene"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleDeleteScene(scene.id, scene.name)}
-                          className="p-2 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg transition-colors cursor-pointer shrink-0"
-                          title="Delete Scene"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                      )}
+                    />
                   </div>
                 </div>
               </>

@@ -232,6 +232,17 @@ function AudioVisualizerCanvas() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scaleRef = useRef(1);
+  // Mirrors isIdle for the render loop, so silence transitions never tear down the canvas.
+  const isIdleRef = useRef(isIdle);
+  const styleRef = useRef(visualizerStyle);
+
+  useEffect(() => {
+    isIdleRef.current = isIdle;
+  }, [isIdle]);
+
+  useEffect(() => {
+    styleRef.current = visualizerStyle;
+  }, [visualizerStyle]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -260,7 +271,7 @@ function AudioVisualizerCanvas() {
 
     const render = (time: number) => {
       // Handle pausing
-      if (!playingRef.current && isIdle) {
+      if (!playingRef.current && isIdleRef.current) {
           isPausedRef.current = true;
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           return;
@@ -293,8 +304,9 @@ function AudioVisualizerCanvas() {
       }
 
       const isSilence = dataArray[0] === 0 && dataArray[Math.floor(dataArray.length / 2)] === 0;
-      
-      if (isSilence !== isIdle) {
+
+      if (isSilence !== isIdleRef.current) {
+          isIdleRef.current = isSilence;
           setIsIdle(isSilence);
       }
 
@@ -323,11 +335,11 @@ function AudioVisualizerCanvas() {
         time,
       };
 
-      if (visualizerStyle === "bars") {
+      if (styleRef.current === "bars") {
         drawBars(opts);
-      } else if (visualizerStyle === "wave") {
+      } else if (styleRef.current === "wave") {
         drawWave(opts);
-      } else if (visualizerStyle === "circle") {
+      } else if (styleRef.current === "circle") {
         drawCircle(opts, scaleRef.current);
       }
     };
@@ -335,10 +347,8 @@ function AudioVisualizerCanvas() {
     const handleVisibility = () => {
       if (document.hidden) {
         cancelAnimationFrame(animationId);
-      } else {
-        if (playingRef.current || !isIdle) {
-          animationId = requestAnimationFrame(render);
-        }
+      } else if (playingRef.current || !isIdleRef.current) {
+        animationId = requestAnimationFrame(render);
       }
     };
 
@@ -353,7 +363,8 @@ function AudioVisualizerCanvas() {
       document.removeEventListener("visibilitychange", handleVisibility);
       cancelAnimationFrame(animationId);
     };
-  }, [visualizerStyle, isIdle]);
+    // Style and idle state are read through refs, so the canvas is set up exactly once.
+  }, []);
 
   return (
     <div className={cn(

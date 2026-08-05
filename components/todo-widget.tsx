@@ -9,17 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { getUIColors } from "@/lib/utils"
 import { SCENE_COLORS } from "@/lib/data"
+import { THEME_COLORS } from "@/lib/constants"
 import confetti from "canvas-confetti"
-
-const THEME_COLORS = {
-  cyan: "#06b6d4",
-  purple: "#a855f7",
-  orange: "#f97316",
-  green: "#10b981",
-  pink: "#ec4899",
-  white: "#ffffff",
-  black: "#000000",
-}
 
 export function TodoWidget() {
   const showTodos = useAppStore((state) => state.showTodos)

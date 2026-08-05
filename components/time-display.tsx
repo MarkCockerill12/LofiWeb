@@ -1,19 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { getUIColors } from "@/lib/utils"
 import { SCENE_COLORS } from "@/lib/data"
-
-const THEME_COLORS = {
-  cyan: "#06b6d4",
-  purple: "#a855f7",
-  orange: "#f97316",
-  green: "#10b981",
-  pink: "#ec4899",
-  white: "#ffffff",
-  black: "#000000",
-}
+import { THEME_COLORS } from "@/lib/constants"
 
 export function TimeDisplay() {
   const [time, setTime] = useState<Date | null>(null)
@@ -27,13 +18,20 @@ export function TimeDisplay() {
   const uiColors = getUIColors(bgHex, uiMode)
   const primaryColor = THEME_COLORS[themeColor] || uiColors.text
 
-  useEffect(() => {
-    setTime(new Date())
-    const interval = setInterval(() => {
-      setTime(new Date())
-    }, 1000)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-    return () => clearInterval(interval)
+  // Only hours and minutes are rendered, so re-render on the minute boundary
+  // instead of every second.
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date()
+      setTime(now)
+      const msToNextMinute = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds())
+      timeoutRef.current = setTimeout(tick, msToNextMinute)
+    }
+
+    tick()
+    return () => clearTimeout(timeoutRef.current)
   }, [])
 
   if (!time) return null

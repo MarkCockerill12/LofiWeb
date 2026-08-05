@@ -1,144 +1,121 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { RotateCcw, CheckSquare, Volume2, Settings, Play, Pause, SkipForward, SkipBack, Repeat, Repeat1, Activity, Shuffle } from "lucide-react"
+import {
+  RotateCcw,
+  CheckSquare,
+  Volume2,
+  Settings,
+  Play,
+  Pause,
+  SkipForward,
+  SkipBack,
+  Repeat,
+  Repeat1,
+  Activity,
+  Shuffle,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { SimpleSlider, type UIColors } from "@/components/ui/slider"
 import { getUIColors } from "@/lib/utils"
 import { SCENE_COLORS } from "@/lib/data"
 import { THEME_COLORS } from "@/lib/constants"
+import { audioController } from "@/lib/audio-controller"
 import * as React from "react"
 
-// Simple native slider for volume
-function SimpleSlider({ value, max = 100, onChange, uiColors }: Readonly<{ value: number, max?: number, onChange: (val: number) => void, uiColors: { bg: string, bgBase: string, text: string, textSecondary: string, border: string } }>) {
-    const percentage = Math.min(100, Math.max(0, (value / max) * 100));
-    
-    return (
-        <div className="relative h-4 flex items-center w-full group">
-            <input 
-            type="range" 
-            min={0} 
-            max={max} 
-            step={1}
-            value={value}
-            onInput={(e) => onChange(Number(e.currentTarget.value))}
-            onChange={() => {}} 
-            className="absolute inset-0 w-full opacity-0 z-10 cursor-pointer"
-            />
-            
-            {/* Custom Track */}
-            <div className="absolute left-0 right-0 h-1.5 rounded-full bg-black/20 dark:bg-white/20 overflow-hidden pointer-events-none">
-                <div 
-                className="h-full bg-black dark:bg-white" 
-                style={{ width: `${percentage}%`, backgroundColor: uiColors.text }}
-                />
-            </div>
-            
-            {/* Custom Thumb - Always Visible */}
-            <div 
-                className="absolute h-4 w-4 bg-white rounded-full shadow border transition-transform pointer-events-none group-hover:scale-110 active:scale-95"
-                style={{ 
-                    left: `${percentage}%`, 
-                    transform: 'translateX(-50%)',
-                    borderColor: uiColors.text,
-                }}
-            >
-                 <div className="absolute inset-0 rounded-full opacity-20" style={{ backgroundColor: uiColors.text }}></div>
-            </div>
-        </div>
-    )
+function formatTime(seconds: number) {
+  if (!seconds || Number.isNaN(seconds)) return "0:00"
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, "0")}`
 }
 
-function MusicSlider({ currentTime, duration, uiColors, onSeek }: Readonly<{ currentTime: number, duration: number, uiColors: { bg: string, bgBase: string, text: string, textSecondary: string, border: string }, onSeek: (val: number) => void }>) {
-    const [dragValue, setDragValue] = React.useState<number | null>(null)
-    const isSeekingRef = React.useRef(false)
-    
-    // Clear the drag value only when the store catches up with our seek
-    // or if we aren't seeking anymore.
-    React.useEffect(() => {
-        if (dragValue !== null && !isSeekingRef.current) {
-            // Check if prop currentTime is now "reasonably close" to where we moved it
-            // or if a decent amount of time has passed.
-            if (Math.abs(currentTime - dragValue) < 2) {
-                setDragValue(null)
-            }
-        }
-    }, [currentTime, dragValue])
+/**
+ * Owns the high-frequency playback subscription. Kept separate from ControlBar so
+ * timeupdate events (~4/s) only re-render this row, not the whole bar and popover.
+ */
+function TrackProgress({ uiColors }: Readonly<{ uiColors: UIColors }>) {
+  const currentTime = useAppStore((state) => state.musicCurrentTime)
+  const duration = useAppStore((state) => state.musicDuration)
+  const onSeek = useAppStore((state) => state.setMusicSeek)
 
-    // Use drag value if dragging, otherwise source of truth
-    const currentValue = dragValue ?? currentTime;
-    
-    // Handle potential NaN
-    const safeCurrent = Number.isFinite(currentValue) ? currentValue : 0;
-    const safeDuration = (Number.isFinite(duration) && duration > 0) ? duration : 100;
-    const percentage = Math.min(100, Math.max(0, (safeCurrent / safeDuration) * 100));
+  const [dragValue, setDragValue] = React.useState<number | null>(null)
+  const isSeekingRef = React.useRef(false)
 
-    const formatTime = (seconds: number) => {
-        if (!seconds || Number.isNaN(seconds)) return "0:00"
-        const mins = Math.floor(seconds / 60)
-        const secs = Math.floor(seconds % 60)
-        return `${mins}:${secs.toString().padStart(2, '0')}`
+  // Release the local drag value once the store catches up with the seek.
+  React.useEffect(() => {
+    if (dragValue !== null && !isSeekingRef.current && Math.abs(currentTime - dragValue) < 2) {
+      setDragValue(null)
     }
+  }, [currentTime, dragValue])
 
-    return (
-        <div className="w-full space-y-1 group">
-            <div className="flex items-center justify-between px-1 text-xs font-mono tabular-nums" style={{ color: uiColors.textSecondary }}>
-                    <span>{formatTime(safeCurrent)}</span>
-                    <span>{formatTime(safeDuration)}</span>
-            </div>
-            
-            <div className="relative h-4 flex items-center w-full">
-                 <input 
-                    type="range" 
-                    min={0} 
-                    max={safeDuration} 
-                    step={1}
-                    value={safeCurrent}
-                    onMouseDown={() => { isSeekingRef.current = true }}
-                    onInput={(e) => {
-                         setDragValue(Number(e.currentTarget.value))
-                    }}
-                    onChange={() => {}} // Controlled input requires onChange or readOnly, but onInput handles updates
-                    onMouseUp={(e) => {
-                          const val = Number(e.currentTarget.value)
-                          isSeekingRef.current = false
-                          onSeek(val)
-                    }}
-                    onTouchStart={() => { isSeekingRef.current = true }}
-                    onTouchEnd={(e) => {
-                          const val = Number(e.currentTarget.value)
-                          isSeekingRef.current = false
-                          onSeek(val)
-                    }}
-                    className="absolute inset-0 w-full opacity-0 z-10 cursor-pointer"
-                 />
-                 
-                 {/* Custom Track */}
-                 <div className="absolute left-0 right-0 h-1.5 rounded-full bg-black/20 dark:bg-white/20 overflow-hidden pointer-events-none">
-                     <div 
-                        className="h-full bg-black dark:bg-white" 
-                        style={{ width: `${percentage}%`, backgroundColor: uiColors.text }}
-                     />
-                 </div>
-                 
-                 {/* Custom Thumb - Always Visible */}
-                 <div 
-                    className="absolute h-4 w-4 bg-white rounded-full shadow border transition-transform pointer-events-none group-hover:scale-110"
-                    style={{ 
-                        left: `${percentage}%`, 
-                        transform: 'translateX(-50%)',
-                        borderColor: uiColors.text,
-                    }}
-                 >
-                     <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-20" style={{ backgroundColor: uiColors.text }}></div>
-                 </div>
-            </div>
+  const currentValue = dragValue ?? currentTime
+  const safeCurrent = Number.isFinite(currentValue) ? currentValue : 0
+  const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 100
+  const percentage = Math.min(100, Math.max(0, (safeCurrent / safeDuration) * 100))
+
+  return (
+    <div className="w-full space-y-1 group">
+      <div
+        className="flex items-center justify-between px-1 text-xs font-mono tabular-nums"
+        style={{ color: uiColors.textSecondary }}
+      >
+        <span>{formatTime(safeCurrent)}</span>
+        <span>{formatTime(safeDuration)}</span>
+      </div>
+
+      <div className="relative h-4 flex items-center w-full">
+        <input
+          type="range"
+          min={0}
+          max={safeDuration}
+          step={1}
+          value={safeCurrent}
+          aria-label="Seek"
+          onMouseDown={() => {
+            isSeekingRef.current = true
+          }}
+          onInput={(e) => setDragValue(Number(e.currentTarget.value))}
+          onChange={() => {}} // Controlled input needs onChange; onInput drives updates
+          onMouseUp={(e) => {
+            isSeekingRef.current = false
+            onSeek(Number(e.currentTarget.value))
+          }}
+          onTouchStart={() => {
+            isSeekingRef.current = true
+          }}
+          onTouchEnd={(e) => {
+            isSeekingRef.current = false
+            onSeek(Number(e.currentTarget.value))
+          }}
+          className="absolute inset-0 w-full opacity-0 z-10 cursor-pointer"
+        />
+
+        <div className="absolute left-0 right-0 h-1.5 rounded-full bg-black/20 dark:bg-white/20 overflow-hidden pointer-events-none">
+          <div
+            className="h-full bg-black dark:bg-white"
+            style={{ width: `${percentage}%`, backgroundColor: uiColors.text }}
+          />
         </div>
-    )
+
+        <div
+          className="absolute h-4 w-4 bg-white rounded-full shadow border transition-transform pointer-events-none group-hover:scale-110"
+          style={{
+            left: `${percentage}%`,
+            transform: "translateX(-50%)",
+            borderColor: uiColors.text,
+          }}
+        >
+          <div
+            className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-20"
+            style={{ backgroundColor: uiColors.text }}
+          />
+        </div>
+      </div>
+    </div>
+  )
 }
-
-// THEME_COLORS moved to lib/constants.ts
-
 
 export function ControlBar() {
   const musicTracks = useAppStore((state) => state.musicTracks)
@@ -146,7 +123,7 @@ export function ControlBar() {
   const toggleTodos = useAppStore((state) => state.toggleTodos)
   const toggleSettings = useAppStore((state) => state.toggleSettings)
   const showTodos = useAppStore((state) => state.showTodos)
-  
+
   const themeColor = useAppStore((state) => state.preferences.themeColor)
   const secondaryColor = useAppStore((state) => state.preferences.secondaryColor)
   const uiMode = useAppStore((state) => state.preferences.uiMode)
@@ -162,9 +139,6 @@ export function ControlBar() {
   const sendPlayerCommand = useAppStore((state) => state.sendPlayerCommand)
   const activePlaylist = useAppStore((state) => state.activePlaylist)
   const setActivePlaylist = useAppStore((state) => state.setActivePlaylist)
-  const musicDuration = useAppStore((state) => state.musicDuration)
-  const musicCurrentTime = useAppStore((state) => state.musicCurrentTime)
-  const setMusicSeek = useAppStore((state) => state.setMusicSeek)
   const showVisualizer = useAppStore((state) => state.showVisualizer)
   const toggleVisualizer = useAppStore((state) => state.toggleVisualizer)
   const isShuffled = useAppStore((state) => state.isShuffled)
@@ -175,57 +149,41 @@ export function ControlBar() {
 
   const color = THEME_COLORS[themeColor]
 
-  const bgHex = secondaryColor ? THEME_COLORS[secondaryColor] : (currentSceneId && SCENE_COLORS[currentSceneId]) || "#000000"
+  const bgHex = secondaryColor
+    ? THEME_COLORS[secondaryColor]
+    : (currentSceneId && SCENE_COLORS[currentSceneId]) || "#000000"
   const uiColors = getUIColors(bgHex, uiMode)
 
   const currentTrack = musicTracks.find((t) => t.id === currentTrackId)
 
   const handlePlaylistChange = (category: string) => {
     setActivePlaylist(category)
-    
-    // 1. Filter tracks for new queue
+
     let newQueueTracks: typeof musicTracks = []
-    if (category === 'all') newQueueTracks = musicTracks
-    else if (category === 'favorites') newQueueTracks = musicTracks.filter(t => favoriteTracks.includes(t.id))
-    else newQueueTracks = musicTracks.filter(t => t.category === category)
-    
-    // 2. Update Queue
-    const newQueueIds = newQueueTracks.map(t => t.id)
+    if (category === "all") newQueueTracks = musicTracks
+    else if (category === "favorites") newQueueTracks = musicTracks.filter((t) => favoriteTracks.includes(t.id))
+    else newQueueTracks = musicTracks.filter((t) => t.category === category)
+
+    const newQueueIds = newQueueTracks.map((t) => t.id)
     setQueue(newQueueIds)
 
-    // 3. Play first available track if current is not in new playlist
-    // Or just play first track to give immediate feedback
-    if (newQueueIds.length > 0) {
-        // If current track is NOT in the new list, switch. 
-        // Or if user explicitly clicked a playlist tag, they likely want to hear it.
-        // Let's switch to the first one for clarity.
-        if (!newQueueIds.includes(currentTrackId)) {
-             setCurrentTrack(newQueueIds[0])
-        }
-        // If we want to force start playing even if paused:
-        // setMusicPlaying(true)
-        // import('@/lib/audio-controller').then(m => m.audioController.resume())
+    // Jump to the head of the new playlist unless the current track is already in it.
+    if (newQueueIds.length > 0 && !newQueueIds.includes(currentTrackId)) {
+      setCurrentTrack(newQueueIds[0])
     }
   }
 
-  const handlePrevious = () => {
-      // Trigger "Restart or Prev" logic via store command to MusicPlayer
-      sendPlayerCommand({ type: 'prev', timestamp: Date.now() })
+  const toggleLoop = () => {
+    const modes: ("all" | "one" | "none")[] = ["all", "one", "none"]
+    const idx = modes.indexOf(loopMode)
+    setLoopMode(modes[(idx + 1) % modes.length])
   }
 
-  const handleNext = () => {
-      sendPlayerCommand({ type: 'next', timestamp: Date.now() })
-  }
-  
-  const toggleLoop = () => {
-      const modes: ("all" | "one" | "none")[] = ["all", "one", "none"]
-      const idx = modes.indexOf(loopMode)
-      setLoopMode(modes[(idx + 1) % modes.length])
-  }
-  
-  const playlistCategories = React.useMemo(() => 
-    ['all', 'favorites', ...Array.from(new Set(musicTracks.map(t => t.category || 'Other')))]
-  , [])
+  // Recomputes when the live station catalog arrives.
+  const playlistCategories = React.useMemo(
+    () => ["all", "favorites", ...Array.from(new Set(musicTracks.map((t) => t.category || "Other")))],
+    [musicTracks],
+  )
 
   return (
     <div className="fixed top-4 right-4 z-40">
@@ -250,10 +208,10 @@ export function ControlBar() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-full w-9 h-9 hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full w-9 h-9 hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
                 style={{ color: uiColors.text }}
                 title="Audio Settings"
               >
@@ -264,7 +222,7 @@ export function ControlBar() {
               className="w-80 border p-4"
               align="end"
               sideOffset={12}
-              alignOffset={-100} 
+              alignOffset={-100}
               style={{
                 backgroundColor: uiColors.bg,
                 borderColor: uiColors.border,
@@ -272,7 +230,10 @@ export function ControlBar() {
             >
               <div className="space-y-4">
                 <div className="text-center pb-4 border-b space-y-1" style={{ borderColor: uiColors.border }}>
-                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: uiColors.textSecondary }}>
+                  <p
+                    className="text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: uiColors.textSecondary }}
+                  >
                     Now Playing ({activePlaylist})
                   </p>
                   <p className="text-base font-bold truncate px-2" style={{ color: uiColors.text }}>
@@ -284,77 +245,81 @@ export function ControlBar() {
                     </p>
                   )}
                 </div>
-                
+
                 {/* Playlist Selector */}
-                <div className="flex flex-wrap gap-1 justify-center pb-2 border-b" style={{ borderColor: uiColors.border }}>
-                    {playlistCategories.map(cat => (
-                        <button
-                            key={cat}
-                            onClick={() => handlePlaylistChange(cat)}
-                            className={`text-[10px] uppercase font-bold px-2 py-1 rounded-full transition-colors ${activePlaylist === cat ? 'bg-white/20' : 'hover:bg-white/10'}`}
-                            style={{ color: activePlaylist === cat ? uiColors.text : uiColors.textSecondary }}
-                        >
-                            {cat}
-                        </button>
-                    ))}
+                <div
+                  className="flex flex-wrap gap-1 justify-center pb-2 border-b"
+                  style={{ borderColor: uiColors.border }}
+                >
+                  {playlistCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => handlePlaylistChange(cat)}
+                      className={`text-[10px] uppercase font-bold px-2 py-1 rounded-full transition-colors ${
+                        activePlaylist === cat ? "bg-white/20" : "hover:bg-white/10"
+                      }`}
+                      style={{ color: activePlaylist === cat ? uiColors.text : uiColors.textSecondary }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="flex items-center justify-center gap-4">
                   <Button
-                     variant="ghost" 
-                     size="icon" 
-                     onClick={handlePrevious}
-                     className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
-                     style={{ color: uiColors.text }}
-                     title="Previous Track"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => sendPlayerCommand({ type: "prev", timestamp: Date.now() })}
+                    className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
+                    style={{ color: uiColors.text }}
+                    title="Previous Track"
                   >
                     <SkipBack className="w-5 h-5" />
                   </Button>
 
                   <Button
-                     variant="ghost" 
-                     size="icon" 
-                     onClick={() => {
-                         setMusicPlaying(!musicPlaying)
-                         // Ensure AudioContext is resumed and connected
-                         import('@/lib/audio-controller').then(m => m.audioController.resume())
-                     }}
-                     className="hover:bg-black/5 dark:hover:bg-white/10 scale-110 hover:scale-125 active:scale-100 transition-transform"
-                     style={{ color: uiColors.text }}
-                     title={musicPlaying ? "Pause" : "Play"}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setMusicPlaying(!musicPlaying)
+                      audioController.resume()
+                    }}
+                    className="hover:bg-black/5 dark:hover:bg-white/10 scale-110 hover:scale-125 active:scale-100 transition-transform"
+                    style={{ color: uiColors.text }}
+                    title={musicPlaying ? "Pause" : "Play"}
                   >
                     {musicPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
                   </Button>
 
                   <Button
-                     variant="ghost" 
-                     size="icon" 
-                     onClick={handleNext}
-                     className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
-                     style={{ color: uiColors.text }}
-                     title="Next Track"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => sendPlayerCommand({ type: "next", timestamp: Date.now() })}
+                    className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
+                    style={{ color: uiColors.text }}
+                    title="Next Track"
                   >
                     <SkipForward className="w-5 h-5" />
                   </Button>
 
                   <Button
-                     variant="ghost" 
-                     size="icon" 
-                     onClick={toggleShuffle}
-                     className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
-                     style={{ color: isShuffled ? color : uiColors.textSecondary }}
-                     title="Shuffle"
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleShuffle}
+                    className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
+                    style={{ color: isShuffled ? color : uiColors.textSecondary }}
+                    title="Shuffle"
                   >
                     <Shuffle className="w-4 h-4" />
                   </Button>
-                  
+
                   <Button
-                     variant="ghost" 
-                     size="icon" 
-                     onClick={toggleLoop}
-                     className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
-                     style={{ color: loopMode === "none" ? uiColors.textSecondary : uiColors.text }}
-                     title="Loop Mode"
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleLoop}
+                    className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
+                    style={{ color: loopMode === "none" ? uiColors.textSecondary : uiColors.text }}
+                    title="Loop Mode"
                   >
                     {loopMode === "one" ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
                   </Button>
@@ -362,25 +327,25 @@ export function ControlBar() {
 
                 {/* Progress Bar */}
                 <div className="space-y-1 pt-2">
-                    <MusicSlider 
-                        currentTime={musicCurrentTime} 
-                        duration={musicDuration} 
-                        uiColors={uiColors} 
-                        onSeek={setMusicSeek} 
-                    />
+                  <TrackProgress uiColors={uiColors} />
                 </div>
 
                 <div className="space-y-2 pt-2">
-                    <div className="flex items-center justify-between px-1">
-                        <span className="text-xs font-medium" style={{ color: uiColors.textSecondary }}>Volume</span>
-                        <span className="text-xs font-medium" style={{ color: uiColors.text }}>{Math.round(volume * 100)}%</span>
-                    </div>
-                    <SimpleSlider 
-                        value={volume * 100}
-                        onChange={(val) => updatePreferences({ volume: val / 100 })}
-                        max={100}
-                        uiColors={uiColors}
-                    />
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-medium" style={{ color: uiColors.textSecondary }}>
+                      Volume
+                    </span>
+                    <span className="text-xs font-medium" style={{ color: uiColors.text }}>
+                      {Math.round(volume * 100)}%
+                    </span>
+                  </div>
+                  <SimpleSlider
+                    value={volume * 100}
+                    onChange={(val) => updatePreferences({ volume: val / 100 })}
+                    max={100}
+                    uiColors={uiColors}
+                    ariaLabel="Music volume"
+                  />
                 </div>
               </div>
             </PopoverContent>

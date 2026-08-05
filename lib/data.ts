@@ -1,122 +1,67 @@
-import assetManifest from './asset-manifest.json';
+import assetManifest from "./asset-manifest.json"
+import { MEDIA_PREFIX, R2_PUBLIC_BASE } from "./constants"
+import type { BackgroundScene, MusicTrack, SoundEffect } from "./types"
 
-export interface MusicTrack {
-  id: string;
-  title: string;
-  artist: string;
-  url: string;
-  category?: string;
+export type { BackgroundScene, MusicTrack, SoundEffect }
+
+/** Rewrites absolute R2 URLs onto the same-origin /media proxy. */
+function toMediaUrl(url: string): string {
+  return url.replace(R2_PUBLIC_BASE, MEDIA_PREFIX)
 }
 
-export interface BackgroundScene {
-  id: string;
-  name: string;
-  videoUrl: string;
-  thumbnailUrl: string;
-  category?: string;
+const KEYWORD_CATEGORIES: Record<"bg" | "music", [RegExp, string][]> = {
+  bg: [
+    [/anime/, "Anime"],
+    [/cyber|neon/, "Sci-Fi"],
+    [/nature|forest|rain/, "Nature"],
+    [/room|study/, "Cozy"],
+  ],
+  music: [
+    [/game|nintendo|zelda/, "Video Game"],
+    [/classical/, "Classical"],
+    [/jazz/, "Jazz"],
+  ],
 }
 
-export interface SoundEffect {
-  id: string;
-  name: string;
-  url: string;
-}
+/**
+ * Assets are organised as `<type>/<Category>/<file>`, so the folder after the type
+ * segment is the category. Falls back to keyword matching for flat legacy paths.
+ */
+function inferCategory(path: string, type: "bg" | "music"): string {
+  const parts = path.split("?")[0].split("/")
+  const anchor = type === "music" ? ["music"] : ["backgrounds", "scenes"]
+  const anchorIdx = parts.findIndex((p) => anchor.includes(p))
 
-// Export data directly from the generated manifest
-const R2_BASE = "https://pub-699441ce0cfb40449cc458823a3f1ed2.r2.dev/lofi-station";
+  if (anchorIdx !== -1 && anchorIdx < parts.length - 1) {
+    const candidate = parts[anchorIdx + 1]
+    // A segment with an extension is the file itself, not a category folder.
+    if (!candidate.includes(".")) return decodeURIComponent(candidate)
+  }
 
-function getUrl(url: string) {
-  return url.replace(R2_BASE, '/media');
-}
-
-function inferCategory(path: string, type: 'bg' | 'music'): string {
-    try {
-        // Expected format: .../lofi-station/music/CategoryName/Track.mp3
-        // or /media/music/CategoryName/Track.mp3
-        
-        // Remove query params if any
-        const cleanPath = path.split('?')[0];
-        const parts = cleanPath.split('/');
-        
-        // Find the 'music' or 'backgrounds' segment
-        // Note: The R2 path suggests 'lofi-station/music/...'
-        // or '.../backgrounds/...'
-        
-        let targetIndex = -1;
-        if (type === 'music') {
-            targetIndex = parts.findIndex(p => p === 'music');
-        } else {
-             // Check for common background folder names or 'backgrounds' if that's the convention
-             // Based on previous manifest usage, scenes might be in root or specific folders.
-             // Let's assume 'backgrounds' or just look at the parent directory of the file.
-             
-             // If we can't find a keyword, use the parent folder name
-             // But 'lofi-station' might be the parent.
-             
-             targetIndex = parts.findIndex(p => p === 'backgrounds' || p === 'scenes');
-        }
-        
-        if (targetIndex !== -1 && targetIndex < parts.length - 1) {
-            // The folder AFTER music/backgrounds is the category
-            // e.g. music/Lofi/track.mp3 -> Lofi
-            // But if the file is directly in music/, then no category?
-            // music/track.mp3 -> parts[targetIndex+1] is 'track.mp3'
-            
-            const candidate = parts[targetIndex + 1];
-            
-            // Check if it's not the filename (has extension)
-            if (!candidate.includes('.')) {
-                // Decode URI component to handle spaces/special chars
-                return decodeURIComponent(candidate);
-            }
-        }
-        
-        // Fallback: If no folder structure found, use existing logic or 'Other'
-        const lower = path.toLowerCase();
-        if (type === 'bg') {
-             if (lower.includes('anime')) return 'Anime';
-             if (lower.includes('cyber') || lower.includes('neon')) return 'Sci-Fi';
-             if (lower.includes('nature') || lower.includes('forest') || lower.includes('rain')) return 'Nature';
-             if (lower.includes('room') || lower.includes('study')) return 'Cozy';
-             return 'Other';
-        } else {
-             if (lower.includes('game') || lower.includes('nintendo') || lower.includes('zelda')) return 'Video Game';
-             if (lower.includes('lofi') || lower.includes('hop')) return 'Lofi';
-             if (lower.includes('classical')) return 'Classical';
-             if (lower.includes('jazz')) return 'Jazz';
-             return 'Lofi';
-        }
-    } catch {
-        return 'Other';
-    }
+  const lower = path.toLowerCase()
+  const match = KEYWORD_CATEGORIES[type].find(([pattern]) => pattern.test(lower))
+  return match ? match[1] : type === "music" ? "Lofi" : "Other"
 }
 
 export const musicTracks: MusicTrack[] = assetManifest.musicTracks.map((t: MusicTrack) => ({
   ...t,
-  url: getUrl(t.url),
-  category: t.category || inferCategory(t.url, 'music')
-}));
+  url: toMediaUrl(t.url),
+  category: t.category || inferCategory(t.url, "music"),
+}))
 
-export const backgroundScenes: BackgroundScene[] = assetManifest.backgroundScenes.map((s: BackgroundScene) => ({
+export const backgroundScenes: BackgroundScene[] = assetManifest.backgroundScenes.map(
+  (s: BackgroundScene) => ({
+    ...s,
+    videoUrl: toMediaUrl(s.videoUrl),
+    thumbnailUrl: toMediaUrl(s.thumbnailUrl),
+    category: s.category || inferCategory(s.videoUrl, "bg"),
+  }),
+)
+
+export const ambienceSounds: SoundEffect[] = assetManifest.ambienceSounds.map((s: SoundEffect) => ({
   ...s,
-  videoUrl: getUrl(s.videoUrl),
-  thumbnailUrl: getUrl(s.thumbnailUrl),
-  category: s.category || inferCategory(s.videoUrl, 'bg')
-}));
-
-// Logic to find specific alarm sound or fallback
-export const alarmSounds: SoundEffect[] = [
-  { 
-    id: 'alarm-1', 
-    name: 'Gentle Chime', 
-    url: getUrl(assetManifest.ambienceSounds.find((s: { name: string, url: string }) => s.name.includes('chime'))?.url || '')
-  }
-];
-
-export const ambienceSounds = assetManifest.ambienceSounds.map((s: { id: string, name: string, url: string }) => ({
-  ...s,
-  url: getUrl(s.url)
-}));
+  url: toMediaUrl(s.url),
+}))
 
 export const SCENE_COLORS: Record<string, string> = {
   "scene-0": "#ec4899", // Sakura -> Pink

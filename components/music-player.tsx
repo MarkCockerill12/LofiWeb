@@ -1,8 +1,8 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { useEffect, useRef, useState, useMemo } from "react"
-import { audioController } from "@/lib/audio-controller" // Import controller
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { audioController } from "@/lib/audio-controller"
 
 const CROSSFADE_DURATION = 3 // seconds
 
@@ -10,8 +10,8 @@ export function MusicPlayer() {
   const musicTracks = useAppStore((state) => state.musicTracks)
   const currentTrackId = useAppStore((state) => state.currentTrackId)
   const volume = useAppStore((state) => state.preferences.volume)
-  const isPlaying = useAppStore((state) => state.musicPlaying) // Use musicPlaying state
-  const setMusicPlaying = useAppStore((state) => state.setMusicPlaying) // Sync auto-play state
+  const isPlaying = useAppStore((state) => state.musicPlaying)
+  const setMusicPlaying = useAppStore((state) => state.setMusicPlaying)
   const setMusicProgress = useAppStore((state) => state.setMusicProgress)
   const musicSeekRequest = useAppStore((state) => state.musicSeekRequest)
   const setMusicSeek = useAppStore((state) => state.setMusicSeek)
@@ -19,219 +19,171 @@ export function MusicPlayer() {
   const setCurrentTrack = useAppStore((state) => state.setCurrentTrack)
   const playerCommand = useAppStore((state) => state.playerCommand)
   const activePlaylist = useAppStore((state) => state.activePlaylist)
-  const queue = useAppStore((state) => state.queue) // Use persistent queue from store
+  const queue = useAppStore((state) => state.queue)
   const favoriteTracks = useAppStore((state) => state.favoriteTracks)
-  const isShuffled = useAppStore((state) => state.isShuffled) // Add shuffle state
-  
+  const isShuffled = useAppStore((state) => state.isShuffled)
+
   const [activePlayer, setActivePlayer] = useState<"A" | "B">("A")
   const isFirstRender = useRef(true)
   const lastProcessedCommandRef = useRef<number>(0)
-  
+
   const playerA = useRef<HTMLAudioElement>(null)
   const playerB = useRef<HTMLAudioElement>(null)
-  
-  // Connect to Audio Controller
-  useEffect(() => {
-      if (playerA.current) audioController.connectSource(playerA.current)
-      if (playerB.current) audioController.connectSource(playerB.current)
-  }, [currentTrackId]) // Run when track changes/mounts so refs are available
-  
-  // Resume AudioContext on play
-  useEffect(() => {
-      if (isPlaying) {
-          audioController.resume()
-      }
-  }, [isPlaying])
 
   const fadeInterval = useRef<NodeJS.Timeout | null>(null)
   const isCrossfading = useRef(false)
 
-  const currentTrack = musicTracks.find((t) => t.id === currentTrackId)
+  const currentTrack = useMemo(
+    () => musicTracks.find((t) => t.id === currentTrackId),
+    [musicTracks, currentTrackId],
+  )
 
-  // Determine current playlist logic
-  // If queue is populated, use it. If empty, fallback to activePlaylist logic for safety/init
-  // Memoize playlist logic to avoid recalculating on every render
+  // Connect to Audio Controller
+  useEffect(() => {
+    if (playerA.current) audioController.connectSource(playerA.current)
+    if (playerB.current) audioController.connectSource(playerB.current)
+  }, [currentTrackId])
+
+  // Resume AudioContext on play
+  useEffect(() => {
+    if (isPlaying) audioController.resume()
+  }, [isPlaying])
+
+  // Playback order. Must track musicTracks so the live station catalog replaces the
+  // bundled seed once /api/station resolves.
   const playlist = useMemo(() => {
-      if (queue && queue.length > 0) {
-          const tracks = queue.map(id => musicTracks.find(t => t.id === id)).filter(Boolean) as typeof musicTracks;
-          if (tracks.length > 0) return tracks;
+    if (queue.length > 0) {
+      const tracks = queue
+        .map((id) => musicTracks.find((t) => t.id === id))
+        .filter((t): t is (typeof musicTracks)[number] => Boolean(t))
+      if (tracks.length > 0) return tracks
+    }
+
+    if (activePlaylist === "all") return musicTracks
+    if (activePlaylist === "favorites") return musicTracks.filter((t) => favoriteTracks.includes(t.id))
+    return musicTracks.filter((t) => t.category === activePlaylist)
+  }, [musicTracks, queue, activePlaylist, favoriteTracks])
+
+  const goToOffset = useCallback(
+    (offset: number) => {
+      if (playlist.length === 0) return
+
+      if (isShuffled) {
+        const randomIdx = Math.floor(Math.random() * playlist.length)
+        if (playlist[randomIdx]) setCurrentTrack(playlist[randomIdx].id)
+        return
       }
-      
-      if (activePlaylist === 'all') return musicTracks;
-      if (activePlaylist === 'favorites') return musicTracks.filter(t => favoriteTracks.includes(t.id));
-      return musicTracks.filter(t => t.category === activePlaylist);
-  }, [queue, activePlaylist, favoriteTracks]);
+
+      const idx = playlist.findIndex((t) => t.id === currentTrackId)
+      const currentIdx = idx === -1 ? 0 : idx
+      const nextIdx = (currentIdx + offset + playlist.length) % playlist.length
+      if (playlist[nextIdx]) setCurrentTrack(playlist[nextIdx].id)
+    },
+    [playlist, isShuffled, currentTrackId, setCurrentTrack],
+  )
 
   // Handle Player Commands (Prev/Restart/Next)
   useEffect(() => {
-    if (!playerCommand || playerCommand.timestamp <= lastProcessedCommandRef.current) return;
-    
-    lastProcessedCommandRef.current = playerCommand.timestamp;
-    
-    if (playerCommand.type === 'prev') {
-        const active = activePlayer === 'A' ? playerA.current : playerB.current
-        if (active) {
-            if (active.currentTime > 3) {
-                // Restart
-                active.currentTime = 0
-                if (isPlaying) active.play().catch(() => {})
-            } else {
-                // Go to previous track in playlist
-                if (isShuffled) {
-                    const randomIdx = Math.floor(Math.random() * playlist.length)
-                    if (playlist[randomIdx]) setCurrentTrack(playlist[randomIdx].id)
-                } else {
-                    const idx = playlist.findIndex(t => t.id === currentTrackId)
-                    // If not found in current playlist (e.g. switched category), start from 0 or keep playing?
-                    // Assuming we want to navigate RELATIVE to the playlist.
-                    const currentIdx = idx === -1 ? 0 : idx;
-                    const prevIdx = (currentIdx - 1 + playlist.length) % playlist.length
-                    if (playlist[prevIdx]) setCurrentTrack(playlist[prevIdx].id)
-                }
-            }
-        }
-    } else if (playerCommand.type === 'next') {
-        if (isShuffled) {
-            const randomIdx = Math.floor(Math.random() * playlist.length)
-            if (playlist[randomIdx]) setCurrentTrack(playlist[randomIdx].id)
-        } else {
-            const idx = playlist.findIndex(t => t.id === currentTrackId)
-            const currentIdx = idx === -1 ? 0 : idx;
-            const nextIdx = (currentIdx + 1) % playlist.length
-            if (playlist[nextIdx]) setCurrentTrack(playlist[nextIdx].id)
-        }
+    if (!playerCommand || playerCommand.timestamp <= lastProcessedCommandRef.current) return
+
+    lastProcessedCommandRef.current = playerCommand.timestamp
+
+    if (playerCommand.type === "prev") {
+      const active = activePlayer === "A" ? playerA.current : playerB.current
+      if (!active) return
+
+      // Restart the track first; only skip back if already near the start.
+      if (active.currentTime > 3) {
+        active.currentTime = 0
+        if (isPlaying) active.play().catch(() => {})
+      } else {
+        goToOffset(-1)
+      }
+    } else if (playerCommand.type === "next") {
+      goToOffset(1)
     }
-  }, [playerCommand, activePlayer, currentTrackId, isPlaying, isShuffled, playlist, setCurrentTrack])
+  }, [playerCommand, activePlayer, isPlaying, goToOffset])
 
   // Handle Seek Request
   useEffect(() => {
     if (musicSeekRequest === null) return
 
-    const active = activePlayer === 'A' ? playerA.current : playerB.current
+    const active = activePlayer === "A" ? playerA.current : playerB.current
     if (active) {
-        if (Number.isFinite(musicSeekRequest)) {
-            active.currentTime = musicSeekRequest
-        }
-        setMusicSeek(null)
+      if (Number.isFinite(musicSeekRequest)) active.currentTime = musicSeekRequest
+      setMusicSeek(null)
     }
-  }, [musicSeekRequest, activePlayer, setMusicSeek]) 
-
-  // Initialize volume
-  useEffect(() => {
-    if (playerA.current) playerA.current.volume = volume
-    if (playerB.current) playerB.current.volume = 0
-  }, [volume]) // Only reset strictly on mount/volume change if not crossfading? 
-  // actually volume change should affect active player immediately.
+  }, [musicSeekRequest, activePlayer, setMusicSeek])
 
   // Handle Volume Changes
   useEffect(() => {
-      if (isCrossfading.current) return; // Let crossfade handle volume during transition
-      
-      if (activePlayer === 'A' && playerA.current) playerA.current.volume = volume
-      if (activePlayer === 'B' && playerB.current) playerB.current.volume = volume
-  }, [volume, activePlayer])
+    if (isCrossfading.current) return // Let crossfade own volume during a transition
 
+    if (activePlayer === "A" && playerA.current) playerA.current.volume = volume
+    if (activePlayer === "B" && playerB.current) playerB.current.volume = volume
+  }, [volume, activePlayer])
 
   // Handle Play/Pause State
   useEffect(() => {
-    const active = activePlayer === 'A' ? playerA.current : playerB.current
+    const active = activePlayer === "A" ? playerA.current : playerB.current
     if (!active) return
 
     if (isPlaying) {
-        active.play().catch(() => {}) // Ignore auto-play blocks
+      active.play().catch(() => {}) // Ignore auto-play blocks
     } else {
-        active.pause()
-    }
-    
-    // Also pause the inactive one just in case
-    const inactive = activePlayer === 'A' ? playerB.current : playerA.current
-    if (inactive && !isCrossfading.current) {
-        inactive.pause()
+      active.pause()
     }
 
+    const inactive = activePlayer === "A" ? playerB.current : playerA.current
+    if (inactive && !isCrossfading.current) inactive.pause()
   }, [isPlaying, activePlayer])
-  
+
   // Handle Track Change
   useEffect(() => {
-    if (!currentTrack) return;
-    
-    // Stop crossfading if happening
+    if (!currentTrack) return
+
     if (fadeInterval.current) clearInterval(fadeInterval.current)
     isCrossfading.current = false
 
-    // Reset
-    if (playerA.current) {
-        playerA.current.src = currentTrack.url
-        playerA.current.currentTime = 0
-        playerA.current.volume = volume
-        
-        // Auto-play only if not first render or if already playing
-        if (!isFirstRender.current) {
-             setMusicPlaying(true)
-             // Ensure playback starts even if state didn't change (e.g. was already true and Active Player was A)
-             playerA.current.play().catch(() => {})
-        } else {
-             // First render: respect initial state (likely false)
-             // If persisted state says playing, the other useEffect will handle it
-             isFirstRender.current = false
-             
-             // If store said "playing" on load, we might need to sync UI, but typically we start paused or let user initiate.
-             // But if we want to restore playback on reload:
-             if (isPlaying) {
-                 playerA.current.play().catch(() => {})
-             }
-        }
-        
-        setActivePlayer("A")
-    }
-    if (playerB.current) {
-        playerB.current.src = currentTrack.url // Preload same track for looping
-        playerB.current.pause()
-        playerB.current.currentTime = 0
-        playerB.current.volume = 0
-    }
+    const a = playerA.current
+    if (a) {
+      a.src = currentTrack.url
+      a.currentTime = 0
+      a.volume = volume
 
-  }, [currentTrackId, currentTrack]) // Removed isPlaying, setMusicPlaying, and volume from dependencies
-
-
-  const handleTimeUpdate = () => {
-      const active = activePlayer === "A" ? playerA.current : playerB.current
-      const next = activePlayer === "A" ? playerB.current : playerA.current
-
-      if (!active || !next || isCrossfading.current) return
-
-      // Update progress
-      setMusicProgress(active.currentTime, active.duration)
-
-      const timeLeft = active.duration - active.currentTime
-
-      if (loopMode === "one") {
-        // Trigger crossfade slightly before end, only if not already crossfading
-        if (timeLeft <= CROSSFADE_DURATION && timeLeft > 0 && !isCrossfading.current) {
-            startCrossfade(active, next)
-        }
+      if (isFirstRender.current) {
+        // Respect persisted state on the first paint rather than forcing playback.
+        isFirstRender.current = false
+        if (isPlaying) a.play().catch(() => {})
       } else {
-         if (active.ended || (timeLeft <= 0.2 && active.duration > 0)) {
-             if (loopMode === "all") {
-                 if (isShuffled) {
-                     const randomIdx = Math.floor(Math.random() * playlist.length)
-                     if (playlist[randomIdx]) setCurrentTrack(playlist[randomIdx].id)
-                 } else {
-                     const idx = playlist.findIndex(t => t.id === currentTrackId)
-                     const currentIdx = idx === -1 ? 0 : idx;
-                     const nextIdx = (currentIdx + 1) % playlist.length
-                     if (playlist[nextIdx]) setCurrentTrack(playlist[nextIdx].id)
-                 }
-             } else {
-                 setMusicPlaying(false)
-             }
-         }
+        setMusicPlaying(true)
+        a.play().catch(() => {})
       }
-  }
 
-  const startCrossfade = (fadeOut: HTMLAudioElement, fadeIn: HTMLAudioElement) => {
+      setActivePlayer("A")
+    }
+
+    // Player B is only needed to crossfade a repeat of this same track. Clearing its
+    // source keeps the browser from downloading every track twice.
+    const b = playerB.current
+    if (b) {
+      b.pause()
+      b.removeAttribute("src")
+      b.load()
+      b.volume = 0
+    }
+    // Volume/playing are read as initial values here; their own effects keep them in sync.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTrack, setMusicPlaying])
+
+  const startCrossfade = useCallback(
+    (fadeOut: HTMLAudioElement, fadeIn: HTMLAudioElement, url: string) => {
       isCrossfading.current = true
+
+      // Load the second copy lazily, at the moment the crossfade actually needs it.
+      if (!fadeIn.src) fadeIn.src = url
       fadeIn.currentTime = 0
+      fadeIn.volume = 0
       fadeIn.play().catch(() => {})
 
       const stepTime = 100 // ms
@@ -241,52 +193,83 @@ export function MusicPlayer() {
       if (fadeInterval.current) clearInterval(fadeInterval.current)
 
       fadeInterval.current = setInterval(() => {
-          currentStep++
-          const progress = currentStep / steps
-          
-          // Easing can be added here, linear for now
-          fadeOut.volume = Math.max(0, volume * (1 - progress))
-          fadeIn.volume = Math.min(volume, volume * progress)
+        currentStep++
+        const progress = currentStep / steps
 
-          if (currentStep >= steps) {
-              if (fadeInterval.current) clearInterval(fadeInterval.current)
-              isCrossfading.current = false
-              
-              // Finalize state
-              fadeOut.pause()
-              fadeOut.currentTime = 0
-              fadeOut.volume = 0 // Reset
-              fadeIn.volume = volume // Ensure max
-              
-              setActivePlayer(prev => prev === "A" ? "B" : "A")
-          }
+        fadeOut.volume = Math.max(0, volume * (1 - progress))
+        fadeIn.volume = Math.min(volume, volume * progress)
+
+        if (currentStep >= steps) {
+          if (fadeInterval.current) clearInterval(fadeInterval.current)
+          isCrossfading.current = false
+
+          fadeOut.pause()
+          fadeOut.currentTime = 0
+          fadeOut.volume = 0
+          fadeIn.volume = volume
+
+          setActivePlayer((prev) => (prev === "A" ? "B" : "A"))
+        }
       }, stepTime)
+    },
+    [volume],
+  )
+
+  const handleTimeUpdate = () => {
+    const active = activePlayer === "A" ? playerA.current : playerB.current
+    const next = activePlayer === "A" ? playerB.current : playerA.current
+
+    if (!active || !next || isCrossfading.current || !currentTrack) return
+
+    setMusicProgress(active.currentTime, active.duration)
+
+    const timeLeft = active.duration - active.currentTime
+
+    if (loopMode === "one") {
+      if (timeLeft <= CROSSFADE_DURATION && timeLeft > 0) {
+        startCrossfade(active, next, currentTrack.url)
+      }
+      return
+    }
+
+    if (active.ended || (timeLeft <= 0.2 && active.duration > 0)) {
+      if (loopMode === "all") {
+        goToOffset(1)
+      } else {
+        setMusicPlaying(false)
+      }
+    }
   }
+
+  // Clean up any in-flight fade on unmount.
+  useEffect(() => {
+    return () => {
+      if (fadeInterval.current) clearInterval(fadeInterval.current)
+    }
+  }, [])
 
   if (!currentTrack) return null
 
   return (
     <>
-        <audio 
-            ref={playerA} 
-            src={currentTrack.url}
-            onTimeUpdate={activePlayer === "A" ? handleTimeUpdate : undefined}
-            onPlay={() => audioController.resume()}
-            preload="auto"
-            crossOrigin="anonymous"
-        >
-          <track kind="captions" />
-        </audio>
-        <audio 
-            ref={playerB} 
-            src={currentTrack.url}
-            onTimeUpdate={activePlayer === "B" ? handleTimeUpdate : undefined}
-            onPlay={() => audioController.resume()}
-            preload="auto"
-            crossOrigin="anonymous"
-        >
-          <track kind="captions" />
-        </audio>
+      <audio
+        ref={playerA}
+        onTimeUpdate={activePlayer === "A" ? handleTimeUpdate : undefined}
+        onPlay={() => audioController.resume()}
+        preload="auto"
+        crossOrigin="anonymous"
+      >
+        <track kind="captions" />
+      </audio>
+      <audio
+        ref={playerB}
+        onTimeUpdate={activePlayer === "B" ? handleTimeUpdate : undefined}
+        onPlay={() => audioController.resume()}
+        preload="none"
+        crossOrigin="anonymous"
+      >
+        <track kind="captions" />
+      </audio>
     </>
   )
 }

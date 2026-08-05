@@ -1,6 +1,11 @@
 // Singleton to manage Audio Context and Analyser
 // This avoids passing complex objects through Zustand or Context providers
 
+export interface AmbientLoopHandle {
+    setVolume: (volume: number) => void
+    stop: () => void
+}
+
 class AudioController {
     private audioContext: AudioContext | null = null;
     private analyser: AnalyserNode | null = null;
@@ -15,8 +20,9 @@ class AudioController {
 
     getAudioContext() {
         if (!this.audioContext) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+            // Safari still exposes the prefixed constructor.
+            const win = globalThis as typeof globalThis & { webkitAudioContext?: typeof AudioContext };
+            const AudioContextClass = win.AudioContext || win.webkitAudioContext;
             if (AudioContextClass) {
                 this.audioContext = new AudioContextClass();
             }
@@ -66,11 +72,78 @@ class AudioController {
         }
     }
 
-    getFrequencyData(array: Uint8Array) {
-        if (this.analyser) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (this.analyser as any).getByteFrequencyData(array);
-        }
+    getFrequencyData(array: Uint8Array<ArrayBuffer>) {
+        this.analyser?.getByteFrequencyData(array);
+    }
+
+    /** Decoded ambience buffers, cached so re-toggling a sound never refetches. */
+    private readonly bufferCache: Map<string, Promise<AudioBuffer>> = new Map();
+
+    private loadBuffer(url: string): Promise<AudioBuffer> {
+        const cached = this.bufferCache.get(url);
+        if (cached) return cached;
+
+        const ctx = this.getAudioContext();
+        if (!ctx) return Promise.reject(new Error("AudioContext unavailable"));
+
+        const pending = fetch(url)
+            .then((res) => {
+                if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+                return res.arrayBuffer();
+            })
+            .then((data) => ctx.decodeAudioData(data))
+            .catch((err) => {
+                // Drop the failed entry so a later toggle can retry.
+                this.bufferCache.delete(url);
+                throw err;
+            });
+
+        this.bufferCache.set(url, pending);
+        return pending;
+    }
+
+    /**
+     * Starts a gapless looping ambience track. Web Audio loops the decoded buffer
+     * sample-accurately, so no crossfade or watchdog polling is needed.
+     * Returns a handle, or null if the context is unavailable.
+     */
+    async playLoop(url: string, volume: number): Promise<AmbientLoopHandle | null> {
+        const ctx = this.getAudioContext();
+        if (!ctx) return null;
+
+        const buffer = await this.loadBuffer(url);
+
+        const source = ctx.createBufferSource();
+        const gain = ctx.createGain();
+
+        source.buffer = buffer;
+        source.loop = true;
+        gain.gain.value = volume;
+
+        source.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(0);
+
+        let stopped = false;
+
+        return {
+            setVolume(next: number) {
+                if (stopped) return;
+                // Short ramp avoids a click on abrupt gain changes.
+                gain.gain.setTargetAtTime(next, ctx.currentTime, 0.02);
+            },
+            stop() {
+                if (stopped) return;
+                stopped = true;
+                try {
+                    source.stop();
+                } catch {
+                    // Already stopped.
+                }
+                source.disconnect();
+                gain.disconnect();
+            },
+        };
     }
 
     playAlarm() {

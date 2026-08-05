@@ -1,87 +1,77 @@
-import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
-import sharp from "sharp"
+import { putObject, R2_PUBLIC_URL } from "@/lib/r2"
+import { isAuthenticated } from "@/lib/auth"
 
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
-const R2_ENDPOINT = process.env.R2_ENDPOINT
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL
+/**
+ * Only these MIME types may be written to the bucket, each with its own size cap.
+ * Images arrive as WebP already — the admin console encodes thumbnails client-side
+ * with canvas, so no server-side image processing is needed.
+ */
+const ALLOWED_TYPES: Record<string, number> = {
+  "audio/mpeg": 25 * 1024 * 1024,
+  "audio/mp3": 25 * 1024 * 1024,
+  "audio/wav": 50 * 1024 * 1024,
+  "video/mp4": 50 * 1024 * 1024,
+  "video/webm": 50 * 1024 * 1024,
+  "image/webp": 5 * 1024 * 1024,
+}
 
-const s3Client = new S3Client({
-  region: "auto",
-  endpoint: R2_ENDPOINT,
-  credentials: {
-    accessKeyId: R2_ACCESS_KEY_ID || "",
-    secretAccessKey: R2_SECRET_ACCESS_KEY || "",
-  },
-})
+const ROOT_PREFIX = "lofi-station"
+
+/**
+ * The folder arrives from the client, so constrain it to a safe subtree instead of
+ * trusting it — otherwise any authenticated call could write anywhere in the bucket.
+ */
+function normalizeFolder(raw: string): string | null {
+  const trimmed = raw.replace(/^\/+|\/+$/g, "")
+  if (!trimmed.startsWith(`${ROOT_PREFIX}/`) && trimmed !== ROOT_PREFIX) return null
+  if (trimmed.includes("..")) return null
+  if (!/^[a-zA-Z0-9/_ -]+$/.test(trimmed)) return null
+  return trimmed
+}
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies()
-  const session = cookieStore.get("admin_session")?.value
-  if (session !== "authenticated") {
+  if (!(await isAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
     const formData = await request.formData()
-    const file = formData.get("file") as File | null
-    const folder = (formData.get("folder") as string) || "lofi-station"
+    const file = formData.get("file")
+    const rawFolder = (formData.get("folder") as string) || ROOT_PREFIX
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-
-    // Sanitize filename
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
-    let key = `${folder.replace(/\/$/, "")}/${Date.now()}-${sanitizedName}`
-
-    let finalBuffer = buffer
-    let finalContentType = file.type
-
-    // If image and not SVG/GIF, convert to WebP
-    if (file.type.startsWith("image/") && !file.type.includes("gif") && !file.type.includes("svg+xml")) {
-      try {
-        console.log(`Converting image ${file.name} to WebP...`)
-        finalBuffer = await sharp(buffer)
-          .webp({ quality: 85 })
-          .toBuffer()
-        finalContentType = "image/webp"
-
-        // Rewrite extension in key
-        const dotIdx = key.lastIndexOf(".")
-        if (dotIdx !== -1) {
-          key = key.substring(0, dotIdx) + ".webp"
-        } else {
-          key = key + ".webp"
-        }
-      } catch (sharpError) {
-        console.warn("Sharp image conversion failed; uploading original.", sharpError)
-      }
+    const maxSize = ALLOWED_TYPES[file.type]
+    if (!maxSize) {
+      return NextResponse.json({ error: `Unsupported file type: ${file.type || "unknown"}` }, { status: 415 })
+    }
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: `File exceeds the ${Math.round(maxSize / 1024 / 1024)}MB limit for ${file.type}` },
+        { status: 413 },
+      )
     }
 
-    console.log(`Uploading file to R2 with key: ${key}...`)
+    const folder = normalizeFolder(rawFolder)
+    if (!folder) {
+      return NextResponse.json({ error: "Invalid destination folder" }, { status: 400 })
+    }
 
-    const command = new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: key,
-      Body: finalBuffer,
-      ContentType: finalContentType || "application/octet-stream",
-      CacheControl: "public, max-age=31536000",
-    })
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
+    const key = `${folder}/${Date.now()}-${sanitizedName}`
 
-    await s3Client.send(command)
+    const uploaded = await putObject(key, await file.arrayBuffer(), file.type)
+    if (!uploaded) {
+      return NextResponse.json({ error: "Failed to upload file to R2" }, { status: 502 })
+    }
 
-    // Return the absolute public URL
-    const publicUrl = `${R2_PUBLIC_URL}/${key}`
-    return NextResponse.json({ success: true, url: publicUrl })
-  } catch (error: any) {
+    return NextResponse.json({ success: true, url: `${R2_PUBLIC_URL}/${key}` })
+  } catch (error) {
     console.error("R2 Upload Error:", error)
-    return NextResponse.json({ error: error.message || "Failed to upload file to R2" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Failed to upload file to R2"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

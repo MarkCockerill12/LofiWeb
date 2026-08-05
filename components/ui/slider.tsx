@@ -1,63 +1,52 @@
 "use client"
 
-import * as React from "react"
 import * as SliderPrimitive from "@radix-ui/react-slider"
 
-import { cn } from "@/lib/utils"
+export interface UIColors {
+  bg: string
+  bgBase: string
+  text: string
+  textSecondary: string
+  border: string
+}
 
-function Slider({
-  className,
-  defaultValue,
+interface SimpleSliderProps {
+  value: number
+  onChange: (value: number) => void
+  uiColors: UIColors
+  min?: number
+  max?: number
+  step?: number
+  ariaLabel?: string
+}
+
+/** The single slider used across the control bar and settings panel. */
+export function SimpleSlider({
   value,
+  onChange,
+  uiColors,
   min = 0,
   max = 100,
-  ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
-  const _values = React.useMemo(
-    () =>
-      Array.isArray(value)
-        ? value
-        : Array.isArray(defaultValue)
-          ? defaultValue
-          : [min, max],
-    [value, defaultValue, min, max]
-  )
-
+  step = 1,
+  ariaLabel,
+}: SimpleSliderProps) {
   return (
     <SliderPrimitive.Root
-      data-slot="slider"
-      defaultValue={defaultValue}
-      value={value}
-      min={min}
+      className="relative flex items-center select-none touch-none w-full h-5 group cursor-pointer"
+      value={[value]}
       max={max}
-      className={cn(
-        "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
-        className
-      )}
-      {...props}
+      min={min}
+      step={step}
+      onValueChange={(vals) => onChange(vals[0])}
     >
-      <SliderPrimitive.Track
-        data-slot="slider-track"
-        className={cn(
-          "bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
-        )}
-      >
-        <SliderPrimitive.Range
-          data-slot="slider-range"
-          className={cn(
-            "bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
-          )}
-        />
+      <SliderPrimitive.Track className="bg-black/20 dark:bg-white/20 relative grow rounded-full h-1.5 overflow-hidden">
+        <SliderPrimitive.Range className="absolute h-full" style={{ backgroundColor: uiColors.text }} />
       </SliderPrimitive.Track>
-      {Array.from({ length: _values.length }, (_, index) => (
-        <SliderPrimitive.Thumb
-          data-slot="slider-thumb"
-          key={index}
-          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
-        />
-      ))}
+      <SliderPrimitive.Thumb
+        aria-label={ariaLabel}
+        className="block w-4 h-4 bg-white rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.3)] hover:scale-110 focus:outline-none focus:scale-110 transition-transform"
+        style={{ border: `2px solid ${uiColors.text}` }}
+      />
     </SliderPrimitive.Root>
   )
 }
-
-export { Slider }
