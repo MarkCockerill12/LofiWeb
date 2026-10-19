@@ -233,10 +233,13 @@ export function MusicPlayer() {
     }
 
     if (active.ended || (timeLeft <= 0.2 && active.duration > 0)) {
-      if (loopMode === "all") {
-        goToOffset(1)
-      } else {
+      // Tracks always advance. Repeat only decides whether the playlist wraps once it
+      // runs out; shuffle has no end, so it keeps going regardless.
+      const isLastTrack = !isShuffled && playlist[playlist.length - 1]?.id === currentTrackId
+      if (loopMode === "none" && isLastTrack) {
         setMusicPlaying(false)
+      } else {
+        goToOffset(1)
       }
     }
   }

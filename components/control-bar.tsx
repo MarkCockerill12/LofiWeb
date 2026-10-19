@@ -174,7 +174,7 @@ export function ControlBar() {
   }
 
   const toggleLoop = () => {
-    const modes: ("all" | "one" | "none")[] = ["all", "one", "none"]
+    const modes: ("all" | "one" | "none")[] = ["none", "all", "one"]
     const idx = modes.indexOf(loopMode)
     setLoopMode(modes[(idx + 1) % modes.length])
   }
@@ -318,8 +318,15 @@ export function ControlBar() {
                     size="icon"
                     onClick={toggleLoop}
                     className="hover:bg-black/5 dark:hover:bg-white/10 hover:scale-110 active:scale-95 transition-transform"
-                    style={{ color: loopMode === "none" ? uiColors.textSecondary : uiColors.text }}
-                    title="Loop Mode"
+                    style={{ color: loopMode === "none" ? uiColors.textSecondary : color }}
+                    title={
+                      loopMode === "one"
+                        ? "Repeat: this track"
+                        : loopMode === "all"
+                          ? "Repeat: playlist (starts over at the end)"
+                          : "Repeat: off (plays through the playlist once)"
+                    }
+                    aria-label={`Repeat ${loopMode === "one" ? "track" : loopMode === "all" ? "playlist" : "off"}`}
                   >
                     {loopMode === "one" ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
                   </Button>
