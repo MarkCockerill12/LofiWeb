@@ -54,30 +54,9 @@ function inferCategory(path: string, type: "bg" | "music"): string {
   return match ? match[1] : type === "music" ? "Lofi" : "Other"
 }
 
-export const musicTracks: MusicTrack[] = assetManifest.musicTracks.map((t: MusicTrack) => ({
-  ...t,
-  url: toAssetUrl(t.url),
-  category: t.category || inferCategory(t.url, "music"),
-}))
-
-export const backgroundScenes: BackgroundScene[] = assetManifest.backgroundScenes.map(
-  (s: BackgroundScene) => ({
-    ...s,
-    videoUrl: toAssetUrl(s.videoUrl),
-    thumbnailUrl: toAssetUrl(s.thumbnailUrl),
-    category: s.category || inferCategory(s.videoUrl, "bg"),
-  }),
-)
-
-export const ambienceSounds: SoundEffect[] = assetManifest.ambienceSounds.map((s: SoundEffect) => ({
-  ...s,
-  url: toAssetUrl(s.url),
-}))
-
 /**
- * Applies the same URL and category normalisation to a manifest fetched at runtime
- * as the bundled seed gets at build time. Previously live data skipped this, so
- * fetched entries kept whatever URL form the manifest happened to hold.
+ * Applies URL and category normalisation to a manifest. Used for both the bundled
+ * seed and the copy fetched at runtime, so the two can never diverge.
  */
 export function normalizeManifest(raw: {
   musicTracks: MusicTrack[]
@@ -99,6 +78,8 @@ export function normalizeManifest(raw: {
     ambienceSounds: raw.ambienceSounds.map((s) => ({ ...s, url: toAssetUrl(s.url) })),
   }
 }
+
+export const { musicTracks, backgroundScenes, ambienceSounds } = normalizeManifest(assetManifest)
 
 export const SCENE_COLORS: Record<string, string> = {
   "scene-0": "#ec4899", // Sakura -> Pink

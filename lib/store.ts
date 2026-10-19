@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware"
 import { THEME_COLORS } from "./constants"
 import { MusicTrack, BackgroundScene, SoundEffect, musicTracks, backgroundScenes, ambienceSounds } from "./data"
 
@@ -138,6 +138,27 @@ interface AppState {
   saveAmbientPreset: (name: string) => void
   applyAmbientPreset: (id: string) => void
   deleteAmbientPreset: (id: string) => void
+}
+
+/**
+ * persist serialises on every set(), including the ~4/s playback progress and 1/s
+ * timer ticks that never touch a persisted field. Skipping the synchronous
+ * localStorage write when the snapshot is unchanged keeps those ticks off the disk.
+ */
+function dedupeWrites(storage: Storage): StateStorage {
+  let lastWritten: string | null = null
+  return {
+    getItem: (name) => (lastWritten = storage.getItem(name)),
+    setItem: (name, value) => {
+      if (value === lastWritten) return
+      lastWritten = value
+      storage.setItem(name, value)
+    },
+    removeItem: (name) => {
+      lastWritten = null
+      storage.removeItem(name)
+    },
+  }
 }
 
 export const useAppStore = create<AppState>()(
@@ -338,6 +359,8 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "lofi-study-storage-v2",
+      // Throws on the server, which createJSONStorage treats as "no storage" just like the default.
+      storage: createJSONStorage(() => dedupeWrites(localStorage)),
       partialize: (state) => ({
         todos: state.todos,
         preferences: state.preferences,

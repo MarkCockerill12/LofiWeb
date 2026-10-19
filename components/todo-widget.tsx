@@ -10,7 +10,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { getUIColors } from "@/lib/utils"
 import { SCENE_COLORS } from "@/lib/data"
 import { THEME_COLORS } from "@/lib/constants"
-import confetti from "canvas-confetti"
 
 export function TodoWidget() {
   const showTodos = useAppStore((state) => state.showTodos)
@@ -50,14 +49,15 @@ export function TodoWidget() {
 
   const handleToggleTodo = (id: string, currentStatus: boolean) => {
     if (!currentStatus) {
-      confetti({
+      // Loaded on first completion rather than with the widget.
+      import("canvas-confetti").then(({ default: confetti }) => confetti({
         particleCount: 80,
         spread: 60,
         origin: { y: 0.7 },
         colors: [THEME_COLORS[themeColor]],
         zIndex: 200,
         disableForReducedMotion: true,
-      })
+      }))
     }
     toggleTodo(id)
   }
